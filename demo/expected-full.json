@@ -1,0 +1,13 @@
+{
+  "note": "DEMO LABEL expected fields. Not a real product.",
+  "productName": "Demo-Kill 20 EC",
+  "rate": "2 ml per litre",
+  "phi": "7 days",
+  "reEntry": "24 hours",
+  "precautions": [
+    "Wear gloves and a mask.",
+    "Wash hands after use.",
+    "Keep away from children.",
+    "Do not mix with other products."
+  ]
+}

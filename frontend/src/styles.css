@@ -1,0 +1,158 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: #eef3ea;
+  color: #1c2419;
+}
+
+.page {
+  min-height: 100vh;
+  max-width: 26rem;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+h1 {
+  font-size: 1.45rem;
+  line-height: 1.25;
+  margin: 0 0 0.4rem;
+}
+
+h2 {
+  font-size: 1.15rem;
+  margin: 0 0 0.5rem;
+}
+
+p {
+  margin: 0 0 0.75rem;
+  line-height: 1.45;
+}
+
+.hint {
+  color: #4d5b47;
+  font-size: 0.92rem;
+}
+
+.banner,
+.demo-flag,
+.card,
+.field input,
+.field select,
+.field textarea,
+button {
+  border-radius: 0.5rem;
+}
+
+.banner {
+  background: #fff4cc;
+  border: 1px solid #d7b54a;
+  padding: 0.75rem;
+  margin: 0.75rem 0;
+  font-size: 0.9rem;
+}
+
+.demo-flag {
+  background: #dcefff;
+  border: 1px solid #6aa4d8;
+  padding: 0.65rem 0.75rem;
+  font-weight: 700;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #d5ddd0;
+  padding: 1rem;
+  margin-top: 0.85rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-bottom: 0.7rem;
+  font-size: 0.92rem;
+}
+
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  padding: 0.55rem 0.6rem;
+  border: 1px solid #b7c2b3;
+  font: inherit;
+}
+
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.75rem;
+}
+
+button {
+  appearance: none;
+  border: 0;
+  background: #2f6b3a;
+  color: #fff;
+  padding: 0.65rem 0.8rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button.secondary {
+  background: #4a5846;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.tag {
+  font-style: normal;
+  font-size: 0.75rem;
+  background: #e7efe4;
+  padding: 0.1rem 0.35rem;
+  border-radius: 0.3rem;
+  color: #2c4a31;
+}
+
+.error {
+  color: #8a1f1f;
+  background: #fdeaea;
+  padding: 0.5rem 0.6rem;
+  border-radius: 0.4rem;
+}
+
+.status {
+  color: #1d4d78;
+}
+
+.result-item {
+  border-top: 1px solid #e1e8de;
+  padding: 0.7rem 0;
+}
+
+.result-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  align-items: baseline;
+  margin-bottom: 0.25rem;
+}
+
+input[type="file"] {
+  width: 100%;
+  margin: 0.4rem 0 0.6rem;
+}
