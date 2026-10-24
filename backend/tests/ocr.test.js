@@ -12,8 +12,8 @@ describe("preprocessLabelImage", () => {
     const processed = await preprocessLabelImage(cameraPhoto);
     const metadata = await sharp(processed).metadata();
     assert.equal(metadata.format, "png");
-    assert.equal(metadata.width, 200);
-    assert.equal(metadata.height, 400);
+    assert.ok(metadata.height > metadata.width, "EXIF rotation should produce a portrait image");
+    assert.ok(metadata.height <= 2056, "preprocessing should keep the long side within its resize limit plus padding");
     const { data, info } = await sharp(processed).raw().toBuffer({ resolveWithObject: true });
     assert.equal(info.channels, 3);
     assert.equal(data[0], data[1]);

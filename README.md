@@ -44,7 +44,7 @@ For AI translation, set `LLM_API_KEY` in `backend/.env`. Never put it in a `VITE
 | Variable | Required | Purpose |
 | --- | --- | --- |
 | `PORT` | No | HTTP port; defaults to `3001` (Render supplies its own). |
-| `ALLOWED_ORIGINS` | Production: yes | Comma-separated exact frontend origins. Local default is `http://localhost:5173`. |
+| `ALLOWED_ORIGINS` | Production: yes | Comma-separated frontend origins. Values are normalized to their exact origin. Plain HTTP localhost/127.0.0.1 dev origins are allowed on any port. |
 | `LLM_API_KEY` | No | Server-only Groq API key for optional translation. Without it, the app reports that translation needs configuration. |
 | `LLM_API_URL` | No | Chat completions URL override. Defaults to `https://api.groq.com/openai/v1/chat/completions`. |
 | `LLM_MODEL` | No | Model override. Default: `openai/gpt-oss-20b`. |
@@ -53,7 +53,7 @@ For AI translation, set `LLM_API_KEY` in `backend/.env`. Never put it in a `VITE
 
 | Variable | Required | Purpose |
 | --- | --- | --- |
-| `VITE_API_URL` | No locally; yes in production | Backend base URL. Leave blank locally to use the Vite proxy. Do not put secrets here. |
+| `VITE_API_URL` | No locally; yes in production | Backend URL, with or without a trailing `/api`. Leave blank locally to use the Vite proxy. Do not put secrets here. |
 
 Copy `.env.example` files before adding local values. `.env` files are ignored by Git.
 

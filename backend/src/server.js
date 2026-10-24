@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import labelRouter from "./routes/label.js";
+import { isAllowedOrigin, normalizeAllowedOrigins } from "./services/origins.js";
 
 const backendRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 dotenv.config({ path: path.join(backendRoot, ".env") });
@@ -11,14 +12,9 @@ dotenv.config({ path: path.join(backendRoot, ".env") });
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || "http://localhost:5173")
-  .split(",")
-  .map((origin) => origin.trim())
-  .filter(Boolean);
-
-function isAllowedOrigin(origin) {
-  return allowedOrigins.includes(origin);
-}
+const allowedOrigins = normalizeAllowedOrigins(
+  process.env.ALLOWED_ORIGINS || "http://localhost:5173",
+);
 
 app.use(
   cors({
@@ -27,7 +23,7 @@ app.use(
         callback(null, true);
         return;
       }
-      if (isAllowedOrigin(origin)) {
+      if (isAllowedOrigin(origin, allowedOrigins)) {
         callback(null, true);
         return;
       }
@@ -48,7 +44,7 @@ app.use((err, _req, res, _next) => {
   if (err.message === "Not allowed by CORS") {
     res.status(403).json({
       ok: false,
-      error: "This website is not allowed to call the API.",
+      error: "This website is not allowed to call the API. Add its exact origin to the backend ALLOWED_ORIGINS setting, then restart the backend.",
       step: "parse",
     });
     return;
