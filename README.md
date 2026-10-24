@@ -48,6 +48,135 @@ Demo photos are always marked **DEMO LABEL**. Never treat them as a real product
 
 ---
 
+## Architecture
+
+The app has two parts that talk over HTTPS: a **frontend** (what the user sees) and a **backend** (where the reading, parsing, math, and AI call happen). There is no database and no login.
+
+```mermaid
+flowchart LR
+    subgraph Browser["User's phone browser (Vercel)"]
+        UI["React + Vite screens<br/>Upload, Confirm, Tank, Result"]
+        TTS["Web Speech API<br/>(Listen button)"]
+    end
+
+    subgraph Server["Backend on Render (Node.js + Express)"]
+        CORS["CORS + upload checks<br/>(type, 5 MB limit)"]
+        OCR["ocr.js<br/>tesseract.js eng+hin"]
+        PARSE["parser.js<br/>regex rules, no AI"]
+        CALC["calculator.js<br/>dose math + unit checks"]
+        LLM["llm.js<br/>translate / simplify only"]
+    end
+
+    EXT["External LLM API<br/>(key: LLM_API_KEY)"]
+
+    UI -- "VITE_API_URL" --> CORS
+    CORS --> OCR --> PARSE
+    PARSE --> UI
+    UI --> CALC
+    CALC --> LLM
+    LLM <--> EXT
+    LLM --> UI
+    UI --> TTS
+```
+
+### What each part does
+
+| Part | File / tool | Job | Uses AI? |
+| --- | --- | --- | --- |
+| Screens | `frontend/src/components/` | Upload, confirm fields, tank input, result, safety banner, language select | No |
+| API client | `frontend/src/services/api.js` | Calls the backend using `VITE_API_URL`; shows the "Starting the server..." message on slow first requests | No |
+| Speech | `frontend/src/services/speech.js` | Reads the result aloud with the browser's Web Speech API | No |
+| Server entry | `backend/src/server.js` | Express app, `GET /api/health`, CORS allow-list, upload limits, `PORT` | No |
+| Route | `backend/src/routes/label.js` | `POST /api/label/extract` (photo in, text and fields out) | No |
+| OCR | `backend/src/services/ocr.js` | Turns the photo into text and a confidence score | No (classic OCR) |
+| Parser | `backend/src/services/parser.js` | Finds product name, rate and unit, tank instructions, PHI, re-entry, precautions. Each field returns the matched snippet and found / not found | No (regex) |
+| Calculator | `backend/src/services/calculator.js` | Computes the tank quantity only when rate, unit, and tank size are clear. Otherwise returns "Could not verify" | No (plain math, unit-tested) |
+| LLM | `backend/src/services/llm.js` | Translates and simplifies the extracted text. Output is rejected if it contains a number not in the input | Yes, the only place |
+
+### Why it is split this way
+
+Each job goes to the most reliable tool for it. Reading text is OCR's job, finding values is a fixed set of rules, math is code, and only wording is left to AI. This keeps the AI away from anything that could cause a wrong dose.
+
+### Trust boundaries
+
+| Where | What is allowed | What is not |
+| --- | --- | --- |
+| Frontend / browser | Public settings such as `VITE_API_URL` | Secrets. Anything starting with `VITE_` is visible to users |
+| Backend | Reads `LLM_API_KEY` from `process.env` | Accepting requests from origins not in `ALLOWED_ORIGINS` |
+| LLM output | Simpler wording of text from the label | New numbers, products, or precautions |
+
+---
+
+## Data flow
+
+This is what happens from the moment a farmer takes a photo to the moment the result is read aloud.
+
+```mermaid
+sequenceDiagram
+    actor Farmer
+    participant FE as Frontend (Vercel)
+    participant BE as Backend (Render)
+    participant OCR as OCR + Parser
+    participant LLM as LLM API
+
+    Farmer->>FE: Choose language, upload label photo
+    FE->>FE: Check type (JPG/PNG) and size (max 5 MB)
+    FE->>BE: POST /api/label/extract (image)
+    BE->>BE: CORS check, re-check type and size
+    BE->>OCR: Run OCR (eng+hin), then parse with regex
+    OCR-->>BE: Raw text, confidence, fields with snippets
+    BE-->>FE: Fields tagged "From label" (or "not found")
+    Farmer->>FE: Confirm or edit fields, enter tank size (litres)
+    FE->>BE: Confirmed fields + tank size
+    BE->>BE: Calculator: quantity, or "Could not verify"
+    BE->>LLM: Extracted text only, asks for simple wording in chosen language
+    LLM-->>BE: JSON explanation
+    BE->>BE: Reject if it has numbers not in the input
+    BE-->>FE: Quantity (Calculated), PHI, re-entry, precautions, explanation (AI explanation)
+    FE-->>Farmer: Result screen with safety banner
+    Farmer->>FE: Tap Listen
+    FE->>FE: Web Speech API reads result aloud
+```
+
+### Step by step
+
+1. **Select language.** English or Hindi, kept in the frontend's component state.
+2. **Upload photo.** The frontend checks type and size first for a quick message. The backend checks again, because the frontend alone can be bypassed.
+3. **OCR.** `ocr.js` returns raw text and a confidence score. Low confidence or missing text is shown to the user, never hidden.
+4. **Parse.** `parser.js` extracts each field with the matched snippet. Missing fields come back as "not found", never guessed. PHI and re-entry interval stay separate.
+5. **Confirm.** The user checks and edits product name, rate, unit, PHI, and precautions. Nothing is calculated before this step.
+6. **Tank size.** The user enters litres. It must be a positive number, at most 10,000.
+7. **Calculate.** `calculator.js` works only when the rate with unit, tank size, and user confirmation are all present. Original units are kept, and any conversion is shown on a separate line.
+8. **Explain.** `llm.js` sends only the extracted text to the LLM and asks for strict JSON. If the output has a number that was not in the input, it is thrown away. If the call fails or no key is set, the app shows the extracted English summary plus an error message, never mock text.
+9. **Show result.** Every item carries a source tag: **From label**, **Calculated**, or **AI explanation**. The helper disclaimer is on every result screen.
+10. **Listen.** The browser reads the result aloud. If the browser does not support it, a message says so.
+
+### Source tags and where each value comes from
+
+| Value on the result screen | Produced by | Tag |
+| --- | --- | --- |
+| Product name, rate, unit, PHI, re-entry, precautions | `ocr.js` then `parser.js`, then confirmed or edited by the user | From label |
+| Tank quantity | `calculator.js` (label rate x tank size) | Calculated |
+| Simplified or translated explanation | `llm.js` | AI explanation |
+
+### How failures behave
+
+| Problem | What the user sees |
+| --- | --- |
+| Wrong file type or file over 5 MB | A clear message, request rejected |
+| Blurry image or OCR failure | A message saying the text could not be read reliably |
+| Rate missing | Quantity shows **Could not verify**, with no number |
+| Tank size blank, zero, or negative | Rejected with a message |
+| LLM slow, failing, or `LLM_API_KEY` empty | Extracted fields still show, plus an error message |
+| First request after idle on free hosting | "Starting the server, this can take up to a minute" |
+| Request from a non-allowed origin | Blocked by CORS |
+
+### Demo mode
+
+The **Use DEMO label** buttons send a sample image by filename. For those files the backend uses the known DEMO text, so the walkthrough is stable. Real camera photos always go through OCR. Demo results are always labelled **DEMO LABEL**.
+
+---
+
 ## Folder map
 
 ```
