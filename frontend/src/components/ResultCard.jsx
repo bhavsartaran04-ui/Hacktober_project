@@ -1,11 +1,11 @@
-function Item({ title, body, tag }) {
+function Item({ title, value, tag, tagClass, big }) {
   return (
     <div className="result-item">
       <div className="result-head">
         <strong>{title}</strong>
-        <em className="tag">{tag}</em>
+        <em className={`tag ${tagClass || ""}`}>{tag}</em>
       </div>
-      <p>{body}</p>
+      <p className={big ? "result-big" : "result-value"}>{value}</p>
     </div>
   );
 }
@@ -25,20 +25,13 @@ export default function ResultCard({
 }) {
   const quantityText = calculation?.ok
     ? `${calculation.quantity} ${calculation.unit}`
-    : calculation?.message || "Could not verify";
+    : calculation?.message || t.notVerified;
 
-  const phiText =
-    fields?.phi?.value?.trim() || "Could not verify: PHI is missing from the label";
-  const reEntryText =
-    fields?.reEntry?.value?.trim() ||
-    "Could not verify: re-entry interval is missing from the label";
-  const precautionText =
-    fields?.precautions?.value?.trim() ||
-    "Could not verify: no precaution lines were found";
+  const phiText = fields?.phi?.value?.trim() || t.notVerified;
+  const reEntryText = fields?.reEntry?.value?.trim() || t.notVerified;
+  const precautionText = fields?.precautions?.value?.trim() || t.notVerified;
   const mixingText =
-    mixing?.status === "found"
-      ? mixing.value
-      : "Could not verify";
+    mixing?.status === "found" ? mixing.value : t.notVerified;
 
   const extractedSummary = [
     fields?.productName?.value,
@@ -54,55 +47,63 @@ export default function ResultCard({
     <section className="card">
       <h2>{t.resultTitle}</h2>
       <p className="hint">
-        {t.productName}: {fields?.productName?.value || "—"} &nbsp;|&nbsp; Tank: {tankLitres} litres
+        {t.productLabel}: {fields?.productName?.value || "—"} &nbsp;|&nbsp;
+        {t.tankLabel}: {tankLitres} {t.tankCustom || "L"}
       </p>
 
-      <Item title={t.quantity} body={quantityText} tag={t.sourceCalc} />
+      {/* Big quantity — the main result */}
+      <Item
+        title={t.quantity}
+        value={quantityText}
+        tag={t.sourceCalc}
+        tagClass="tag-calc"
+        big={calculation?.ok}
+      />
       {calculation?.conversionLines?.map((line) => (
-        <p key={line} className="hint">
-          {line}
-        </p>
+        <p key={line} className="conversion">{line}</p>
       ))}
 
-      <Item title={t.phi} body={phiText} tag={t.sourceLabel} />
-      <Item title={t.reEntry} body={reEntryText} tag={t.sourceLabel} />
-      <Item title={t.precautions} body={precautionText} tag={t.sourceLabel} />
-      <Item title={t.mixing} body={mixingText} tag={t.sourceLabel} />
+      <Item title={t.phi} value={phiText} tag={t.sourceLabel} />
+      <Item title={t.reEntry} value={reEntryText} tag={t.sourceLabel} />
+      <Item title={t.precautions} value={precautionText} tag={t.sourceLabel} />
+      <Item title={t.mixing} value={mixingText} tag={t.sourceLabel} />
 
-      <div className="result-item">
-        <div className="result-head">
-          <strong>{t.explanation}</strong>
-          <em className="tag">{t.sourceAi}</em>
+      {llm?.ok ? (
+        <Item
+          title={t.explanation}
+          value={llm.explanation}
+          tag={t.sourceAi}
+          tagClass="tag-ai"
+        />
+      ) : llm?.error ? (
+        <div className="result-item">
+          <div className="result-head">
+            <strong>{t.explanation}</strong>
+            <em className="tag tag-ai">{t.sourceAi}</em>
+          </div>
+          <p className="hint">{llm.error}</p>
+          {extractedSummary ? <p className="result-value">{extractedSummary}</p> : null}
         </div>
-        {llm?.ok ? (
-          <p>{llm.explanation}</p>
-        ) : (
-          <>
-            <p className="hint">{llm?.error}</p>
-            {extractedSummary ? (
-              <p>{extractedSummary}</p>
-            ) : (
-              <p className="hint">No extracted summary is available.</p>
-            )}
-          </>
-        )}
-      </div>
+      ) : null}
 
-      <div className="row">
-        <button type="button" onClick={onListen}>
+      {/* BIG Listen button */}
+      <div style={{ marginTop: "1rem" }}>
+        <button type="button" className="btn btn-listen" onClick={onListen}>
           {t.listen}
         </button>
-        <button type="button" className="secondary" onClick={onStop}>
+      </div>
+      {speechError ? <p className="speech-error">{speechError}</p> : null}
+      <div className="row" style={{ marginTop: "0.5rem" }}>
+        <button type="button" className="btn btn-stop" onClick={onStop}>
           {t.stop}
         </button>
       </div>
-      {speechError ? <p className="error">{speechError}</p> : null}
 
-      <div className="row">
-        <button type="button" className="secondary" onClick={onBack}>
+      <div className="row" style={{ marginTop: "0.75rem" }}>
+        <button type="button" className="btn btn-secondary" onClick={onBack}>
           {t.back}
         </button>
-        <button type="button" className="secondary" onClick={onRetry}>
+        <button type="button" className="btn btn-secondary" onClick={onRetry}>
           {t.retry}
         </button>
       </div>

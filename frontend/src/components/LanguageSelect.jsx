@@ -1,14 +1,20 @@
-export default function LanguageSelect({ language, onChange, label }) {
+export default function LanguageSelect({ language, onChange, t }) {
   return (
-    <label className="field">
-      <span>{label}</span>
-      <select
-        value={language}
-        onChange={(event) => onChange(event.target.value)}
+    <div className="lang-buttons">
+      <button
+        type="button"
+        className={`lang-btn${language === "en" ? " active" : ""}`}
+        onClick={() => onChange("en")}
       >
-        <option value="en">English</option>
-        <option value="hi">हिन्दी (Hindi)</option>
-      </select>
-    </label>
+        {t.langEn}
+      </button>
+      <button
+        type="button"
+        className={`lang-btn${language === "hi" ? " active" : ""}`}
+        onClick={() => onChange("hi")}
+      >
+        {t.langHi}
+      </button>
+    </div>
   );
 }
