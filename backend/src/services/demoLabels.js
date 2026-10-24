@@ -20,10 +20,3 @@ export const DEMO_MISSING_RATE_TEXT = [
   "Wear protective clothing.",
   "Avoid spray drift.",
 ].join("\n");
-
-export function demoTextForFilename(originalName) {
-  const name = String(originalName || "").toLowerCase();
-  if (name.includes("demo-missing-rate")) return DEMO_MISSING_RATE_TEXT;
-  if (name.includes("demo-full")) return DEMO_FULL_TEXT;
-  return null;
-}

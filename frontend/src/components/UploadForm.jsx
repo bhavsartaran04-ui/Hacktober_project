@@ -1,28 +1,21 @@
 import { useRef } from "react";
-
-export const INDIAN_STATES = [
-  "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
-  "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka",
-  "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram",
-  "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu",
-  "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal",
-];
+import { INDIAN_STATES } from "../data/indianStates.js";
 
 const CROP_TYPES = ["kharif", "rabi", "zaid", "perennial", "other"];
 
-export default function UploadForm({ t, busy, error, onFile, state, onStateChange, crop, onCropChange, soil, soilLoading }) {
-  const inputRef = useRef(null);
+export default function UploadForm({ t, busy, error, onFile, state, onStateChange, crop, onCropChange, soil, soilLoading, loadingText }) {
+  const cameraRef = useRef(null);
+  const galleryRef = useRef(null);
 
   function handleChange(event) {
     const file = event.target.files?.[0];
+    event.target.value = "";
     if (!file) return;
 
     const typeOk =
-      file.type === "image/jpeg" ||
-      file.type === "image/png" ||
-      file.type === "image/jpg";
+      ["image/jpeg", "image/png", "image/jpg", "image/webp"].includes(file.type);
     if (!typeOk) {
-      onFile(null, "Only JPG / PNG");
+      onFile(null, "Choose a JPG, PNG, or WebP photo.");
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
@@ -52,30 +45,34 @@ export default function UploadForm({ t, busy, error, onFile, state, onStateChang
       <p className="hint state-hint">{t.cropHint}</p>
       {/* Hidden real file input */}
       <input
-        ref={inputRef}
+        ref={cameraRef}
         className="hidden-input"
         type="file"
-        accept="image/jpeg,image/png,.jpg,.jpeg,.png"
+        accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
         capture="environment"
         onChange={handleChange}
-        disabled={busy}
+        disabled={busy || !state}
+      />
+      <input
+        ref={galleryRef}
+        className="hidden-input"
+        type="file"
+        accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+        onChange={handleChange}
+        disabled={busy || !state}
       />
 
       {/* Big tap area */}
       <div
         className="upload-area"
-        onClick={() => !busy && state && inputRef.current?.click()}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            if (state && !busy) inputRef.current?.click();
-          }
-        }}
+        aria-disabled={busy || !state}
       >
         <span className="camera-icon">📷</span>
         <p>{t.cameraHint}</p>
+        <div className="row upload-actions">
+          <button type="button" className="btn btn-primary" disabled={busy || !state} onClick={() => cameraRef.current?.click()}>{t.takePhoto}</button>
+          <button type="button" className="btn btn-secondary" disabled={busy || !state} onClick={() => galleryRef.current?.click()}>{t.choosePhoto}</button>
+        </div>
       </div>
 
       {error ? <p className="error">{error}</p> : null}
@@ -83,7 +80,7 @@ export default function UploadForm({ t, busy, error, onFile, state, onStateChang
       {busy ? (
         <div className="loading-wrap">
           <div className="spinner" />
-          <p className="status">{t.loading}</p>
+          <p className="status">{loadingText || t.loading}</p>
         </div>
       ) : null}
     </section>

@@ -1,6 +1,7 @@
 import { createWorker } from "tesseract.js";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import sharp from "sharp";
 
 const backendRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -17,6 +18,7 @@ async function getWorker() {
       .then(async (worker) => {
         await worker.setParameters({
           tessedit_pageseg_mode: "6",
+          preserve_interword_spaces: "1",
         });
         return worker;
       })
@@ -28,13 +30,27 @@ async function getWorker() {
   return workerPromise;
 }
 
+export async function preprocessLabelImage(imageBuffer) {
+  return sharp(imageBuffer, {
+    failOn: "error",
+    limitInputPixels: 40_000_000,
+  })
+    .rotate()
+    .resize({ width: 2600, height: 2600, fit: "inside", withoutEnlargement: true })
+    .greyscale()
+    .normalize()
+    .png()
+    .toBuffer();
+}
+
 /**
  * @param {Buffer} imageBuffer
  * @returns {Promise<{ text: string, confidence: number, lowConfidence: boolean }>}
  */
 export async function readLabelImage(imageBuffer) {
+  const preparedImage = await preprocessLabelImage(imageBuffer);
   const worker = await getWorker();
-  const result = await worker.recognize(imageBuffer);
+  const result = await worker.recognize(preparedImage);
   const text = (result.data?.text || "").trim();
   const confidence = Number(result.data?.confidence);
   const score = Number.isFinite(confidence) ? confidence : 0;
@@ -42,6 +58,6 @@ export async function readLabelImage(imageBuffer) {
   return {
     text,
     confidence: Math.round(score * 10) / 10,
-    lowConfidence: score < 60 || text.length < 8,
+    lowConfidence: score < 70 || text.length < 8,
   };
 }

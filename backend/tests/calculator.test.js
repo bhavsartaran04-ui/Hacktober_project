@@ -32,6 +32,24 @@ describe("calculateDose", () => {
     assert.equal(result.unit, "g");
   });
 
+  it("calculates a custom tank capacity", () => {
+    const result = calculateDose({ ...confirmed, tankLitres: 17.5 });
+    assert.equal(result.ok, true);
+    assert.equal(result.quantity, 35);
+  });
+
+  it("converts millilitres of water in the denominator", () => {
+    const result = calculateDose({
+      ...confirmed,
+      rateAmount: 2,
+      perAmount: 500,
+      perUnit: "ml",
+      tankLitres: 10,
+    });
+    assert.equal(result.ok, true);
+    assert.equal(result.quantity, 40);
+  });
+
   it("does not invent a number when the rate is missing", () => {
     const result = calculateDose({
       confirmed: true,
@@ -68,5 +86,19 @@ describe("calculateDose", () => {
     assert.equal(result.ok, false);
     assert.equal(result.quantity, null);
     assert.match(result.message, /do not match/);
+  });
+
+  it("does not convert a per-hectare dose into a tank dose", () => {
+    const result = calculateDose({ ...confirmed, perUnit: "hectare" });
+    assert.equal(result.ok, false);
+    assert.equal(result.quantity, null);
+  });
+
+  it("rejects nonnumeric or nonpositive rate values", () => {
+    for (const amount of ["not a number", 0, -1, Infinity]) {
+      const result = calculateDose({ ...confirmed, rateAmount: amount });
+      assert.equal(result.ok, false);
+      assert.equal(result.quantity, null);
+    }
   });
 });

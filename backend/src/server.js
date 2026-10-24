@@ -17,13 +17,7 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS || "http://localhost:5173")
   .filter(Boolean);
 
 function isAllowedOrigin(origin) {
-  if (allowedOrigins.includes(origin)) return true;
-  try {
-    const url = new URL(origin);
-    return url.protocol === "https:" && url.hostname.endsWith(".vercel.app");
-  } catch {
-    return false;
-  }
+  return allowedOrigins.includes(origin);
 }
 
 app.use(
@@ -59,8 +53,16 @@ app.use((err, _req, res, _next) => {
     });
     return;
   }
-  console.error(err);
-  res.status(500).json({
+  if (err.type === "entity.too.large") {
+    res.status(413).json({ ok: false, error: "Request body is too large." });
+    return;
+  }
+  if (err.type === "entity.parse.failed") {
+    res.status(400).json({ ok: false, error: "Request body is not valid JSON." });
+    return;
+  }
+  console.error("Request failed", err.message);
+  res.status(err.status && err.status < 500 ? err.status : 500).json({
     ok: false,
     error: "Unexpected server error.",
     step: "parse",

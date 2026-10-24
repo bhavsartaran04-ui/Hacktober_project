@@ -11,6 +11,8 @@ const STATE_POINTS = {
   Telangana: [17.385, 78.4867], Tripura: [23.8315, 91.2868], "Uttar Pradesh": [26.8467, 80.9462],
   Uttarakhand: [30.3165, 78.0322], "West Bengal": [22.5726, 88.3639],
 };
+const SOIL_CACHE = new Map();
+const SOIL_CACHE_MS = 6 * 60 * 60 * 1000;
 
 function textureClass(clay, sand) {
   if (clay >= 40) return "Clay";
@@ -69,6 +71,8 @@ async function fetchSoilAt(lat, lon) {
 export async function lookupStateSoil(state) {
   const point = STATE_POINTS[state];
   if (!point) return { ok: false, error: "Choose a valid Indian state." };
+  const cached = SOIL_CACHE.get(state);
+  if (cached && Date.now() - cached.savedAt < SOIL_CACHE_MS) return cached.value;
   const [lat, lon] = point;
   try {
     let sample = await fetchSoilAt(lat, lon);
@@ -90,7 +94,7 @@ export async function lookupStateSoil(state) {
     const clayPercent = Math.round(sample.clayRaw / 10);
     const sandPercent = Math.round(sample.sandRaw / 10);
     const sampleDistanceKm = distanceKm(lat, lon, sample.lat, sample.lon);
-    return {
+    const value = {
       ok: true,
       texture: textureClass(clayPercent, sandPercent),
       clayPercent,
@@ -102,6 +106,8 @@ export async function lookupStateSoil(state) {
       source: "ISRIC SoilGrids",
       sourceUrl: "https://soilgrids.org/",
     };
+    SOIL_CACHE.set(state, { value, savedAt: Date.now() });
+    return value;
   } catch (error) {
     console.warn("Soil lookup failed", error.message);
     return { ok: false, error: "Soil data is temporarily unavailable. The label-based report is still available." };

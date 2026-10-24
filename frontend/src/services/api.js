@@ -2,13 +2,16 @@ const API_URL = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
 const SLOW_MS = 8000;
 
-async function request(path, options, onSlow) {
+async function request(path, options, onSlow, slowText = "Starting the server, this can take up to a minute", timeoutMs = 90000) {
   const timer = setTimeout(() => {
-    onSlow?.("Starting the server, this can take up to a minute");
+    onSlow?.(slowText);
   }, SLOW_MS);
 
   try {
-    const res = await fetch(`${API_URL}${path}`, options);
+    const res = await fetch(`${API_URL}${path}`, {
+      ...options,
+      signal: options?.signal || AbortSignal.timeout(timeoutMs),
+    });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       return {
@@ -19,11 +22,12 @@ async function request(path, options, onSlow) {
       };
     }
     return data;
-  } catch {
+  } catch (error) {
     return {
       ok: false,
-      error:
-        "Could not reach the server. Is the backend running on port 3001?",
+      error: error?.name === "TimeoutError"
+        ? "The request took too long. Check your connection and try again."
+        : "Could not reach the server. Is the backend running on port 3001?",
       step: "ocr",
     };
   } finally {
@@ -46,11 +50,19 @@ export function fetchResult(payload, { onSlow } = {}) {
       body: JSON.stringify(payload),
     },
     onSlow,
+    "Preparing the report…",
+    45000,
   );
 }
 
 export function fetchSoil(state) {
-  return request(`/api/label/soil?state=${encodeURIComponent(state)}`);
+  return request(
+    `/api/label/soil?state=${encodeURIComponent(state)}`,
+    {},
+    undefined,
+    "Looking for regional soil data…",
+    25000,
+  );
 }
 
 export { API_URL };

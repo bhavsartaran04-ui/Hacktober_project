@@ -408,6 +408,34 @@ body {
 .soil-preview { color: #00e5a0; font-size: 0.9rem; margin: 0.5rem 0; }
 .result-item a { color: #00c8ff; }
 
+.confirm-card { display: flex; flex-direction: column; gap: 0.85rem; }
+.confirm-card h2 { margin-bottom: 0; }
+.confirm-section-title { color: #c0d0e0; font-size: 1rem; margin: 0.5rem 0 -0.35rem; }
+.ocr-original { border: 1px solid #2a3a52; border-radius: 0.75rem; padding: 0.8rem; color: #a0b4c8; }
+.ocr-original summary { cursor: pointer; font-weight: 650; }
+.ocr-original pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 16rem; overflow: auto; margin-top: 0.75rem; color: #d5dfeb; font: 0.85rem/1.5 ui-monospace, SFMono-Regular, monospace; }
+.confirm-warning { line-height: 1.45; }
+.field { display: flex; flex-direction: column; gap: 0.45rem; color: #c0d0e0; font-size: 0.9rem; }
+.field-heading { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; font-weight: 650; }
+.field-snippet { color: #7a8fa6; line-height: 1.4; overflow-wrap: anywhere; }
+.field input, .field textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #2a3a52;
+  border-radius: 0.65rem;
+  background: #0e1628;
+  color: #e0e8f0;
+  font: inherit;
+  line-height: 1.45;
+}
+.field textarea { resize: vertical; }
+.field input:focus, .field textarea:focus { outline: 2px solid #00c48c; outline-offset: 1px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
+.review-check { display: flex; align-items: flex-start; gap: 0.65rem; color: #c0d0e0; font-size: 0.9rem; line-height: 1.45; padding: 0.65rem 0; }
+.review-check input { width: 1.2rem; height: 1.2rem; flex: 0 0 auto; accent-color: #00c48c; }
+.result-value { white-space: pre-wrap; overflow-wrap: anywhere; }
+.label-preview { display: block; max-width: 100%; max-height: 22rem; object-fit: contain; margin: 0.75rem auto 1rem; border-radius: 0.75rem; background: #0e1628; }
+
 .conversion {
   color: #5a7a96;
   font-size: 0.82rem;

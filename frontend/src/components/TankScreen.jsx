@@ -1,21 +1,16 @@
-import { useState } from "react";
-
 const PRESETS = [10, 15, 16, 20];
 
-export default function TankScreen({ t, busy, error, onCalculate, onBack }) {
-  const [selected, setSelected] = useState(null);
-  const [custom, setCustom] = useState("");
-
-  const activeLitres = selected || (custom !== "" ? Number(custom) : null);
+export default function TankScreen({ t, busy, error, onCalculate, onBack, tankLitres, onTankChange }) {
+  const activeLitres = tankLitres !== "" ? Number(tankLitres) : null;
+  const presetSelected = PRESETS.includes(activeLitres);
+  const overLimit = Number.isFinite(activeLitres) && activeLitres > 10000;
 
   function handlePreset(litres) {
-    setSelected(litres);
-    setCustom("");
+    onTankChange(String(litres));
   }
 
   function handleCustom(val) {
-    setCustom(val);
-    setSelected(null);
+    onTankChange(val);
   }
 
   function handleSubmit() {
@@ -33,7 +28,7 @@ export default function TankScreen({ t, busy, error, onCalculate, onBack }) {
           <button
             type="button"
             key={litres}
-            className={`tank-btn${selected === litres ? " active" : ""}`}
+            className={`tank-btn${activeLitres === litres ? " active" : ""}`}
             onClick={() => handlePreset(litres)}
           >
             🪣 {litres} {t.tankCustom}
@@ -48,13 +43,14 @@ export default function TankScreen({ t, busy, error, onCalculate, onBack }) {
           inputMode="decimal"
           min="1"
           max="10000"
-          value={custom}
+          value={presetSelected ? "" : tankLitres}
           placeholder="—"
           onChange={(e) => handleCustom(e.target.value)}
         />
         <span>{t.tankCustom}</span>
       </div>
 
+      {overLimit ? <p className="error">{t.tankOverLimit}</p> : null}
       {error ? <p className="error" style={{ marginTop: "0.75rem" }}>{error}</p> : null}
 
       {busy ? (
@@ -74,7 +70,7 @@ export default function TankScreen({ t, busy, error, onCalculate, onBack }) {
           <button
             type="button"
             className="btn btn-primary"
-            disabled={!activeLitres || activeLitres <= 0 || busy}
+            disabled={!activeLitres || activeLitres <= 0 || overLimit || busy}
             onClick={handleSubmit}
           >
             {t.calculate}

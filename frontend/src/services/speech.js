@@ -1,5 +1,7 @@
 export function getSpeechSupport() {
-  return typeof window !== "undefined" && "speechSynthesis" in window;
+  return typeof window !== "undefined" &&
+    "speechSynthesis" in window &&
+    typeof window.SpeechSynthesisUtterance === "function";
 }
 
 export function speakText(text, language) {

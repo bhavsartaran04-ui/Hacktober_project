@@ -28,13 +28,25 @@ export function parseLabelText(rawText) {
 
   return {
     productName: parseProductName(text, lines),
+    activeIngredient: parseLabelledLine(text, /(?:active\s+ingredient|a\.i\.)/i),
+    targetCrop: parseLabelledLine(text, /(?:target\s+)?crop/i),
+    targetPest: parseLabelledLine(text, /(?:target\s+)?pest/i),
     rate: parseRate(text),
     tankInstructions: parseTankInstructions(lines),
     phi: parsePhi(text),
     reEntry: parseReEntry(text),
     precautions: parsePrecautions(lines),
     mixing: parseMixing(text),
+    firstAid: parseSafetyLines(lines, /first\s*aid|poison(?:ing)?\s+(?:treatment|symptoms)|\u092a\u094d\u0930\u093e\u0925\u092e\u093f\u0915\s+\u0909\u092a\u091a\u093e\u0930/i),
+    warnings: parseSafetyLines(lines, /warning|caution|hazard|danger|toxic|keep\s+away|\u0916\u0924\u0930\u093e|\u0938\u093e\u0935\u0927\u093e\u0928/i),
   };
+}
+
+function parseLabelledLine(text, labelPattern) {
+  const line = text.split("\n").find((candidate) => labelPattern.test(candidate));
+  if (!line) return emptyField();
+  const value = line.replace(new RegExp(`^.*?${labelPattern.source}\\s*[:\\-]?\\s*`, "i"), "").trim();
+  return value ? found(line, value) : emptyField();
 }
 
 function parseProductName(text, lines) {
@@ -46,8 +58,8 @@ function parseProductName(text, lines) {
     return found(labelled[0], labelled[1]);
   }
 
-  const skip = /^(demo label|dose|phi|pre-harvest|re-?entry|precaution|wear|wash|keep|do not)/i;
-  const candidate = lines.find((line) => line.length > 2 && !skip.test(line));
+  const skip = /^(demo label|dose|phi|fhi|pre[-\s]?harvest|re-?entry|restricted entry|precaution|wear\b|wash\b|keep\b|do not|wait\b|harvest\b|spray\b|application\b|water\b|active ingredient|target crop|target pest|first aid|warning|caution|mix(?:ing)?\b)/i;
+  const candidate = lines.find((line) => line.length > 2 && line.length <= 80 && !skip.test(line));
   if (candidate) {
     return found(candidate, candidate);
   }
@@ -63,10 +75,10 @@ function parseProductName(text, lines) {
  */
 function parseRate(text) {
   const pattern =
-    /(\d+(?:\.\d+)?)\s*(ml|millilitres?|milliliters?|g|gm|grams?|kg|l|litres?|liters?)\b[^\n]{0,48}?(?:per|\/)\s*(?:(\d+(?:\.\d+)?)\s*)?(ml|l|litres?|liters?|millilitres?|milliliters?)\b/i;
+    /(\d+(?:\.\d+)?)\s*(ml|millilitres?|milliliters?|g|gm|grams?|kg|l|litres?|liters?)\b[^\n]{0,48}?(?:per|\/|\u092a\u094d\u0930\u0924\u093f)\s*(?:(\d+(?:\.\d+)?)\s*)?(ml|l|litres?|liters?|millilitres?|milliliters?|hectares?|ha|acres?|plants?|\u0932\u0940\u091f\u0930)(?=\s|$|[.,;])/gi;
 
-  const match = text.match(pattern);
-  if (!match) {
+  const matches = [...text.matchAll(pattern)];
+  if (!matches.length) {
     return {
       ...emptyField(),
       amount: null,
@@ -76,6 +88,15 @@ function parseRate(text) {
     };
   }
 
+  const signatures = new Set(matches.map((match) => `${match[1]} ${match[2].toLowerCase()} per ${match[3] || 1} ${match[4].toLowerCase()}`));
+  if (signatures.size > 1) {
+    return {
+      status: "uncertain", snippet: matches.map((match) => match[0].trim()).join(" | "), value: "",
+      amount: null, unit: "", perAmount: null, perUnit: "",
+    };
+  }
+
+  const match = matches[0];
   const amount = Number(match[1]);
   const unit = match[2];
   const perAmount = match[3] ? Number(match[3]) : 1;
@@ -102,33 +123,36 @@ function parseTankInstructions(lines) {
 
 function parsePhi(text) {
   const patterns = [
-    /(?:pre[-\s]?harvest[^\n]{0,24}|PHI|FHI)\s*[:\-]?\s*(\d+)\s*(days?|din)/i,
-    /(?:do not harvest|wait(?:ing)? period before harvest)[^\n]{0,40}?(\d+)\s*(days?)/i,
-    /wait\s*(\d+)\s*(days?)[^\n]{0,40}?harvest/i,
-    /harvest[^\n]{0,30}?(\d+)\s*(days?)/i,
+    /(?:pre[-\s]?harvest(?:\s+interval)?|PHI|FHI|waiting\s+period\s+before\s+harvest|last\s+application\s+to\s+harvest(?:\s+interval)?)[^\n]{0,28}?[:\-]?\s*(\d{1,3})\s*(days?|din|\u0926\u093f\u0928)/i,
+    /do not harvest(?:\s+within)?[^\n]{0,35}?(\d{1,3})\s*(days?)/i,
+    /wait\s*(\d{1,3})\s*(days?)[^\n]{0,35}?harvest/i,
+    /(?:\u0915\u091f\u093e\u0908|\u092b\u0938\u0932 \u0915\u093e\u091f\u0928\u0947)[^\n]{0,35}?(\d{1,3})\s*(\u0926\u093f\u0928)/i,
   ];
 
+  const hits = [];
   for (const pattern of patterns) {
-    const match = text.match(pattern);
-    if (match) {
-      return found(match[0], `${match[1]} ${match[2]}`);
-    }
+    hits.push(...text.matchAll(new RegExp(pattern.source, "gi")));
   }
+  const unique = [...new Map(hits.map((match) => [`${match[1]} ${match[2].toLowerCase()}`, match])).values()];
+  if (unique.length === 1) return found(unique[0][0], `${unique[0][1]} ${unique[0][2]}`);
+  if (unique.length > 1) return { status: "uncertain", snippet: unique.map((match) => match[0]).join(" | "), value: "" };
   return emptyField();
 }
 
 function parseReEntry(text) {
   const patterns = [
-    /(?:re[-\s]?ent\w*(?:\s+\w+)?|restricted entry(?:\s+interval)?|REI)\s*[:\-]?\s*(\d+)\s*(hours?|hrs?|days?)/i,
-    /do not (?:enter|re-?enter)[^\n]{0,40}?(\d+)\s*(hours?|hrs?|days?)/i,
+    /(?:re[-\s]?ent\w*(?:\s+\w+)?|restricted entry(?:\s+interval)?|REI)\s*[:\-]?\s*(\d{1,3})\s*(hours?|hrs?|days?|\u0918\u0902\u091f\u0947|\u0926\u093f\u0928)/i,
+    /do not (?:enter|re-?enter)[^\n]{0,40}?(\d{1,3})\s*(hours?|hrs?|days?)/i,
+    /(?:field\s+entry|entry\s+interval)[^\n]{0,25}?[:\-]?\s*(\d{1,3})\s*(hours?|hrs?|days?)/i,
   ];
 
+  const hits = [];
   for (const pattern of patterns) {
-    const match = text.match(pattern);
-    if (match) {
-      return found(match[0], `${match[1]} ${match[2]}`);
-    }
+    hits.push(...text.matchAll(new RegExp(pattern.source, "gi")));
   }
+  const unique = [...new Map(hits.map((match) => [`${match[1]} ${match[2].toLowerCase()}`, match])).values()];
+  if (unique.length === 1) return found(unique[0][0], `${unique[0][1]} ${unique[0][2]}`);
+  if (unique.length > 1) return { status: "uncertain", snippet: unique.map((match) => match[0]).join(" | "), value: "" };
   return emptyField();
 }
 
@@ -149,17 +173,20 @@ function parsePrecautions(lines) {
   };
 }
 
+function parseSafetyLines(lines, pattern) {
+  const hits = lines.filter((line) => pattern.test(line));
+  if (!hits.length) return emptyField();
+  return { status: "found", snippet: hits.join(" | "), value: hits.join("\n"), lines: hits };
+}
+
 function parseMixing(text) {
-  if (/(?:may be mixed|compatible with|can be tank-?mixed)/i.test(text)) {
-    const match = text.match(
-      /[^\n]*(?:may be mixed|compatible with|can be tank-?mixed)[^\n]*/i,
-    );
-    return found(match?.[0] || "mixing allowed on label", match?.[0] || "");
+  const prohibition = text.match(/[^\n]*(?:do\s*not|never)\s+(?:tank[-\s]?)?mix[^\n]*|[^\n]*not\s+compatible\s+with[^\n]*/i);
+  const permission = text.match(/[^\n]*(?:may be mixed|(?<!not )compatible with|can be tank-?mixed)[^\n]*/i);
+  if (prohibition && permission) {
+    return { status: "uncertain", snippet: `${prohibition[0]} | ${permission[0]}`, value: "" };
   }
-  if (/do\s*not\s*mix/i.test(text)) {
-    const match = text.match(/[^\n]*do\s*not\s*mix[^\n]*/i);
-    return found(match?.[0] || "do not mix", match?.[0] || "");
-  }
+  if (prohibition) return found(prohibition[0], prohibition[0]);
+  if (permission) return found(permission[0], permission[0]);
   return {
     status: "not found",
     snippet: "",

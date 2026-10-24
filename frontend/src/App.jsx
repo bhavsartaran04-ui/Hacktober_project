@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import LanguageSelect from "./components/LanguageSelect.jsx";
 import SafetyBanner from "./components/SafetyBanner.jsx";
 import UploadForm from "./components/UploadForm.jsx";
+import ConfirmFields from "./components/ConfirmFields.jsx";
 import TankScreen from "./components/TankScreen.jsx";
 import ResultCard from "./components/ResultCard.jsx";
 import { extractLabel, fetchResult, fetchSoil } from "./services/api.js";
@@ -10,14 +11,16 @@ import { copy } from "./utils/copy.js";
 
 export default function App() {
   const [language, setLanguage] = useState("en");
-  const [screen, setScreen] = useState("upload"); // upload → tank → result
+  const [screen, setScreen] = useState("upload"); // upload → confirm → tank → result
   const [busy, setBusy] = useState(false);
+  const [progressLabel, setProgressLabel] = useState("");
   const [error, setError] = useState("");
   const [slowMessage, setSlowMessage] = useState("");
   const [isDemo, setIsDemo] = useState(false);
   const [ocr, setOcr] = useState(null);
   const [fields, setFields] = useState(null);
   const [tankLitres, setTankLitres] = useState(null);
+  const [tankInput, setTankInput] = useState("");
   const [calculation, setCalculation] = useState(null);
   const [llm, setLlm] = useState(null);
   const [mixing, setMixing] = useState(null);
@@ -27,6 +30,9 @@ export default function App() {
   const [crop, setCrop] = useState("");
   const [soilLoading, setSoilLoading] = useState(false);
   const soilRequestId = useRef(0);
+  const resultRequestId = useRef(0);
+  const imagePreviewUrl = useRef("");
+  const [imagePreview, setImagePreview] = useState("");
 
   const t = useMemo(() => copy[language] || copy.en, [language]);
 
@@ -46,14 +52,30 @@ export default function App() {
   }
 
   /* ── Step 1: Extract label (OCR + parse) ── */
-  async function runExtract(file, demoFlag) {
+  async function runExtract(file) {
+    if (imagePreviewUrl.current) URL.revokeObjectURL(imagePreviewUrl.current);
+    imagePreviewUrl.current = URL.createObjectURL(file);
+    setImagePreview(imagePreviewUrl.current);
+    resultRequestId.current += 1;
     setBusy(true);
+    setProgressLabel(t.preparingImage);
     setError("");
     setSlowMessage("");
+    setOcr(null);
+    setFields(null);
+    setCalculation(null);
+    setLlm(null);
+    setMixing(null);
+    setTankLitres(null);
+    setTankInput("");
+    setSpeechError("");
+    stopSpeaking();
+    setProgressLabel(t.readingText);
     const result = await extractLabel(file, {
       onSlow: (msg) => setSlowMessage(msg),
     });
     setBusy(false);
+    setProgressLabel("");
     setSlowMessage("");
     if (!result.ok) {
       setError(result.error);
@@ -61,20 +83,38 @@ export default function App() {
     }
     setOcr(result.ocr);
     setFields(result.fields);
-    setIsDemo(Boolean(result.isDemo || demoFlag));
-    // Skip confirm → go straight to tank size
-    setScreen("tank");
+    setIsDemo(Boolean(result.isDemo));
+    setScreen("confirm");
+  }
+
+  function updateConfirmedField(path, value) {
+    const [fieldName, property] = path.split(".");
+    setFields((current) => {
+      if (!current) return current;
+      if (!property) {
+        return { ...current, [fieldName]: { ...current[fieldName], value, status: "edited" } };
+      }
+      const rate = { ...current[fieldName], [property]: value, status: "edited" };
+      if (fieldName === "rate") {
+        rate.value = `${rate.amount || ""} ${rate.unit || ""} per ${rate.perAmount || ""} ${rate.perUnit || ""}`.trim();
+      }
+      return { ...current, [fieldName]: rate };
+    });
   }
 
   /* ── Step 2: Calculate result ── */
-  async function runResult(litres) {
+  async function runResult(litres, requestedLanguage = language) {
+    const requestId = ++resultRequestId.current;
     setTankLitres(litres);
+    setTankInput(String(litres));
     setBusy(true);
+    setProgressLabel(t.preparingResult);
     setError("");
     setSlowMessage("");
+    setLlm(null);
     const result = await fetchResult(
       {
-        language,
+        language: requestedLanguage,
         state,
         crop,
         soil,
@@ -84,7 +124,9 @@ export default function App() {
       },
       { onSlow: (msg) => setSlowMessage(msg) },
     );
+    if (requestId !== resultRequestId.current) return;
     setBusy(false);
+    setProgressLabel("");
     setSlowMessage("");
     if (!result.ok) {
       setError(result.error);
@@ -97,14 +139,17 @@ export default function App() {
     setScreen("result");
   }
 
+  function handleLanguageChange(nextLanguage) {
+    setLanguage(nextLanguage);
+    if (screen === "result" && !busy && tankLitres) {
+      runResult(tankLitres, nextLanguage);
+    }
+  }
+
   /* ── Listen button ── */
   function handleListen() {
     if (!getSpeechSupport()) {
-      setSpeechError(
-        language === "hi"
-          ? "यह ब्राउज़र बोल नहीं सकता।"
-          : "This browser cannot read aloud.",
-      );
+      setSpeechError(t.speechUnsupported);
       return;
     }
     const parts = [
@@ -114,6 +159,8 @@ export default function App() {
       fields?.phi?.value,
       fields?.reEntry?.value,
       fields?.precautions?.value,
+      fields?.firstAid?.value,
+      fields?.warnings?.value,
       llm?.ok ? llm.explanation : "",
     ].filter(Boolean);
     const spoken = speakText(parts.join(". "), language);
@@ -122,6 +169,9 @@ export default function App() {
 
   /* ── Reset ── */
   function resetAll() {
+    if (imagePreviewUrl.current) URL.revokeObjectURL(imagePreviewUrl.current);
+    imagePreviewUrl.current = "";
+    setImagePreview("");
     stopSpeaking();
     setScreen("upload");
     setError("");
@@ -131,6 +181,7 @@ export default function App() {
     setLlm(null);
     setMixing(null);
     setTankLitres(null);
+    setTankInput("");
     setSpeechError("");
     setIsDemo(false);
   }
@@ -144,14 +195,15 @@ export default function App() {
           <p>{t.subtitle}</p>
         </header>
 
-        <LanguageSelect language={language} onChange={setLanguage} t={t} />
+        <LanguageSelect language={language} onChange={handleLanguageChange} t={t} disabled={busy} />
 
         {isDemo ? <p className="demo-flag">{t.demoBanner}</p> : null}
 
         <SafetyBanner text={t.disclaimer} />
 
         {slowMessage ? <p className="status">{slowMessage}</p> : null}
-        {ocr?.lowConfidence && screen !== "upload" ? (
+        {error && screen === "result" ? <p className="error" role="alert">{error}</p> : null}
+        {ocr?.lowConfidence && screen === "result" ? (
           <p className="error">{t.ocrLow}</p>
         ) : null}
 
@@ -159,10 +211,11 @@ export default function App() {
           <UploadForm
             t={t}
             busy={busy}
+            loadingText={progressLabel || t.extractingFields}
             error={error}
             onFile={(file, message) => {
               if (message) setError(message);
-              else runExtract(file, false);
+              else runExtract(file);
             }}
             state={state}
             onStateChange={handleStateChange}
@@ -173,13 +226,27 @@ export default function App() {
           />
         ) : null}
 
+        {screen === "confirm" ? (
+          <ConfirmFields
+            t={t}
+            fields={fields || {}}
+            ocr={ocr}
+            imagePreview={imagePreview}
+            onChange={updateConfirmedField}
+            onContinue={() => setScreen("tank")}
+            onBack={() => setScreen("upload")}
+          />
+        ) : null}
+
         {screen === "tank" ? (
           <TankScreen
             t={t}
             busy={busy}
             error={error}
             onCalculate={runResult}
-            onBack={resetAll}
+            onBack={() => setScreen("confirm")}
+            tankLitres={tankInput}
+            onTankChange={setTankInput}
           />
         ) : null}
 
@@ -194,6 +261,7 @@ export default function App() {
             soil={soil}
             state={state}
             crop={crop}
+            busy={busy}
             speechError={speechError}
             onListen={handleListen}
             onStop={stopSpeaking}
