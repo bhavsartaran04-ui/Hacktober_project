@@ -1,4 +1,5 @@
 import { useState } from "react";
+import SummaryPanel from "./SummaryPanel.jsx";
 
 function Field({ label, statusLabel, snippet, sourceLabel, children }) {
   return (
@@ -13,7 +14,7 @@ function Field({ label, statusLabel, snippet, sourceLabel, children }) {
   );
 }
 
-export default function ConfirmFields({ t, fields, ocr, imagePreview, onChange, onContinue, onBack }) {
+export default function ConfirmFields({ t, fields, ocr, summary, imagePreview, onChange, onContinue, onBack }) {
   const [reviewed, setReviewed] = useState(false);
   const statusText = (field) => {
     if (field?.status === "edited") return t.userEdited;
@@ -29,6 +30,7 @@ export default function ConfirmFields({ t, fields, ocr, imagePreview, onChange, 
       <p className="hint">{t.confirmHint}</p>
       {imagePreview ? <img className="label-preview" src={imagePreview} alt={t.labelPhotoPreview} /> : null}
       {ocr?.lowConfidence ? <p className="error confirm-warning">{t.ocrLow} {t.confirmLowConfidence}</p> : null}
+      {summary ? <SummaryPanel t={t} summary={summary} compact /> : null}
 
       <details className="ocr-original">
         <summary>{t.originalText} ({ocr?.confidence ?? 0}%)</summary>

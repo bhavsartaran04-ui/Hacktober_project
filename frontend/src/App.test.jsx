@@ -34,6 +34,26 @@ const ocrResult = (productName) => ({
     firstAid: { status: "not found", value: "", snippet: "" },
     warnings: { status: "not found", value: "", snippet: "" },
   },
+  summary: {
+    genuineness: {
+      verdict: "reliable",
+      score: 88,
+      confidence: 92,
+      evidence: ["OCR confidence 92%", "Product name read", "Dose / amount read"],
+      missing: [],
+    },
+    amountToUse: {
+      status: "needs_tank",
+      amount: 2,
+      unit: "ml",
+      perAmount: 1,
+      perUnit: "litre",
+      labelRate: "2 ml per 1 litre",
+      tankQuantity: null,
+      tankUnit: "",
+      tankLitres: null,
+    },
+  },
 });
 
 beforeEach(() => {
@@ -46,6 +66,20 @@ beforeEach(() => {
   fetchResult.mockResolvedValue({
     ok: true,
     calculation: { ok: true, quantity: 20, unit: "ml", conversionLines: [] },
+    summary: {
+      genuineness: { verdict: "reliable", score: 88, confidence: 92, evidence: ["Dose / amount read"], missing: [] },
+      amountToUse: {
+        status: "ready",
+        amount: 2,
+        unit: "ml",
+        perAmount: 1,
+        perUnit: "litre",
+        labelRate: "2 ml per 1 litre",
+        tankQuantity: 20,
+        tankUnit: "ml",
+        tankLitres: 10,
+      },
+    },
     llm: { ok: false, error: "not configured" },
     mixing: { status: "not found", value: "Could not verify" },
     soil: { ok: true, texture: "Loam", clayPercent: 22, sandPercent: 40, estimate: "Nearest mapped sample about 10 km away.", source: "ISRIC SoilGrids", sourceUrl: "https://soilgrids.org/" },
@@ -83,6 +117,8 @@ describe("Pesticide label reader flow", () => {
 
     expect(await screen.findByText("Result")).toBeTruthy();
     expect(screen.getByText("20 ml")).toBeTruthy();
+    expect(screen.getByText("Genuineness of this reading")).toBeTruthy();
+    expect(screen.getByText("Amount to use")).toBeTruthy();
     expect(screen.getByText(/Maharashtra: Loam/)).toBeTruthy();
     expect(screen.getByText(/Rainy season \(Kharif\)/)).toBeTruthy();
     expect(fetchResult.mock.calls[0][0].state).toBe("Maharashtra");

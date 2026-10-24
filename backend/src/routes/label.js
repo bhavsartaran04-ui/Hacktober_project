@@ -6,6 +6,7 @@ import { parseLabelText } from "../services/parser.js";
 import { calculateDose } from "../services/calculator.js";
 import { explainLabel } from "../services/llm.js";
 import { lookupStateSoil } from "../services/soil.js";
+import { buildLabelSummary } from "../services/summary.js";
 
 const MAX_BYTES = 5 * 1024 * 1024;
 const FIELD_NAMES = [
@@ -133,12 +134,14 @@ router.post("/extract", (req, res) => {
 
       const fields = parseLabelText(ocr.text);
       const isDemo = /demo label/i.test(ocr.text);
+      const summary = buildLabelSummary({ ocr, fields, isDemo });
 
       return res.json({
         ok: true,
         isDemo,
         ocr,
         fields,
+        summary,
       });
     } catch (error) {
       console.error("OCR failed", error);
@@ -201,6 +204,15 @@ router.post("/result", async (req, res) => {
     return res.status(400).json({ ok: false, error: soil.error });
   }
   const llm = await explainLabel({ sourceText, language });
+  const ocrHint = body.ocr && typeof body.ocr === "object" ? body.ocr : {};
+  const isDemo = body.isDemo === true;
+  const summary = buildLabelSummary({
+    ocr: ocrHint,
+    fields,
+    isDemo,
+    calculation: calc,
+    tankLitres: body.tankLitres,
+  });
 
   return res.json({
     ok: true,
@@ -208,6 +220,7 @@ router.post("/result", async (req, res) => {
     crop: crop || null,
     soil: soil?.ok ? soil : null,
     calculation: calc,
+    summary,
     llm,
     mixing:
       ["found", "edited", "uncertain"].includes(fields.mixing?.status)

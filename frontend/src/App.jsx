@@ -19,6 +19,7 @@ export default function App() {
   const [isDemo, setIsDemo] = useState(false);
   const [ocr, setOcr] = useState(null);
   const [fields, setFields] = useState(null);
+  const [summary, setSummary] = useState(null);
   const [tankLitres, setTankLitres] = useState(null);
   const [tankInput, setTankInput] = useState("");
   const [calculation, setCalculation] = useState(null);
@@ -63,6 +64,7 @@ export default function App() {
     setSlowMessage("");
     setOcr(null);
     setFields(null);
+    setSummary(null);
     setCalculation(null);
     setLlm(null);
     setMixing(null);
@@ -83,6 +85,7 @@ export default function App() {
     }
     setOcr(result.ocr);
     setFields(result.fields);
+    setSummary(result.summary || null);
     setIsDemo(Boolean(result.isDemo));
     setScreen("confirm");
   }
@@ -121,6 +124,8 @@ export default function App() {
         confirmed: true,
         tankLitres: litres,
         fields,
+        ocr,
+        isDemo,
       },
       { onSlow: (msg) => setSlowMessage(msg) },
     );
@@ -133,6 +138,7 @@ export default function App() {
       return;
     }
     setCalculation(result.calculation);
+    if (result.summary) setSummary(result.summary);
     setLlm(result.llm);
     setMixing(result.mixing);
     if (result.soil) setSoil(result.soil);
@@ -153,8 +159,19 @@ export default function App() {
       return;
     }
     const parts = [
+      summary?.genuineness?.verdict
+        ? `${t.genuinenessTitle}: ${
+            summary.genuineness.verdict === "reliable"
+              ? t.genuineReliable
+              : summary.genuineness.verdict === "demo"
+                ? t.genuineDemo
+                : summary.genuineness.verdict === "uncertain"
+                  ? t.genuineUncertain
+                  : t.genuineUnreliable
+          }`
+        : "",
       calculation?.ok
-        ? `${calculation.quantity} ${calculation.unit}`
+        ? `${t.amountToUse}: ${calculation.quantity} ${calculation.unit}`
         : calculation?.message,
       fields?.phi?.value,
       fields?.reEntry?.value,
@@ -177,6 +194,7 @@ export default function App() {
     setError("");
     setFields(null);
     setOcr(null);
+    setSummary(null);
     setCalculation(null);
     setLlm(null);
     setMixing(null);
@@ -231,6 +249,7 @@ export default function App() {
             t={t}
             fields={fields || {}}
             ocr={ocr}
+            summary={summary}
             imagePreview={imagePreview}
             onChange={updateConfirmedField}
             onContinue={() => setScreen("tank")}
@@ -254,6 +273,7 @@ export default function App() {
           <ResultCard
             t={t}
             fields={fields}
+            summary={summary}
             tankLitres={tankLitres}
             calculation={calculation}
             llm={llm}

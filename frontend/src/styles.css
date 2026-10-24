@@ -347,6 +347,32 @@ body {
   color: #c8a0ff;
 }
 
+.tag-warn {
+  background: rgba(240, 176, 64, 0.14);
+  color: #f0c060;
+}
+
+.tag-bad {
+  background: rgba(240, 80, 80, 0.14);
+  color: #f08080;
+}
+
+.summary-panel {
+  background: #0e1628;
+  border: 1px solid #2a3a52;
+  border-radius: 0.85rem;
+  padding: 0.35rem 0.9rem 0.15rem;
+  margin: 0.35rem 0 0.75rem;
+}
+
+.summary-panel .result-item:first-child {
+  border-top: none;
+}
+
+.summary-compact {
+  margin-top: 0;
+}
+
 .result-value {
   font-size: 1rem;
   line-height: 1.5;

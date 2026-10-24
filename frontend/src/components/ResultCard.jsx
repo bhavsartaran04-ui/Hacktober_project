@@ -1,3 +1,5 @@
+import SummaryPanel from "./SummaryPanel.jsx";
+
 function Item({ title, value, tag, tagClass, big }) {
   return (
     <div className="result-item">
@@ -13,6 +15,7 @@ function Item({ title, value, tag, tagClass, big }) {
 export default function ResultCard({
   t,
   fields,
+  summary,
   tankLitres,
   calculation,
   llm,
@@ -61,14 +64,17 @@ export default function ResultCard({
         {t.tankLabel}: {tankLitres} {t.tankCustom || "L"}
       </p>
 
-      {/* Big quantity — the main result */}
-      <Item
-        title={t.quantity}
-        value={quantityText}
-        tag={calculation?.ok ? t.sourceCalc : t.sourceUnverified}
-        tagClass={calculation?.ok ? "tag-calc" : ""}
-        big={calculation?.ok}
-      />
+      {summary ? (
+        <SummaryPanel t={t} summary={summary} tankLitres={tankLitres} />
+      ) : (
+        <Item
+          title={t.quantity}
+          value={quantityText}
+          tag={calculation?.ok ? t.sourceCalc : t.sourceUnverified}
+          tagClass={calculation?.ok ? "tag-calc" : ""}
+          big={calculation?.ok}
+        />
+      )}
       {calculation?.conversionLines?.map((line) => (
         <p key={line} className="conversion">{line}</p>
       ))}

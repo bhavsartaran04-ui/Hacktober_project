@@ -75,7 +75,7 @@ function parseProductName(text, lines) {
  */
 function parseRate(text) {
   const pattern =
-    /(\d+(?:\.\d+)?)\s*(ml|millilitres?|milliliters?|g|gm|grams?|kg|l|litres?|liters?)\b[^\n]{0,48}?(?:per|\/|\u092a\u094d\u0930\u0924\u093f)\s*(?:(\d+(?:\.\d+)?)\s*)?(ml|l|litres?|liters?|millilitres?|milliliters?|hectares?|ha|acres?|plants?|\u0932\u0940\u091f\u0930)(?=\s|$|[.,;])/gi;
+    /(\d+(?:\.\d+)?)\s*(ml|millilitres?|milliliters?|g|gm|grams?|kg|l|litr?e{1,2}s?|liters?|ltrs?)\b[^\n]{0,48}?(?:per|fer|\/|\u092a\u094d\u0930\u0924\u093f)\s*(?:(\d+(?:\.\d+)?)\s*)?(ml|l|litr?e{1,2}s?|liters?|ltrs?|millilitres?|milliliters?|hectares?|ha|acres?|plants?|\u0932\u0940\u091f\u0930)(?=\s|$|[.,;])/gi;
 
   const matches = [...text.matchAll(pattern)];
   if (!matches.length) {
@@ -88,7 +88,12 @@ function parseRate(text) {
     };
   }
 
-  const signatures = new Set(matches.map((match) => `${match[1]} ${match[2].toLowerCase()} per ${match[3] || 1} ${match[4].toLowerCase()}`));
+  const signatures = new Set(
+    matches.map(
+      (match) =>
+        `${match[1]} ${canonicalUnit(match[2]).toLowerCase()} per ${match[3] || 1} ${canonicalUnit(match[4]).toLowerCase()}`,
+    ),
+  );
   if (signatures.size > 1) {
     return {
       status: "uncertain", snippet: matches.map((match) => match[0].trim()).join(" | "), value: "",
@@ -98,9 +103,9 @@ function parseRate(text) {
 
   const match = matches[0];
   const amount = Number(match[1]);
-  const unit = match[2];
+  const unit = canonicalUnit(match[2]);
   const perAmount = match[3] ? Number(match[3]) : 1;
-  const perUnit = match[4];
+  const perUnit = canonicalUnit(match[4]);
 
   return {
     status: "found",
@@ -113,6 +118,19 @@ function parseRate(text) {
   };
 }
 
+function canonicalUnit(unit) {
+  const key = String(unit || "").trim().toLowerCase();
+  if (key === "ml" || /^millilit(re|er)s?$/.test(key)) return "ml";
+  if (key === "g" || key === "gm" || /^grams?$/.test(key)) return "g";
+  if (key === "kg") return "kg";
+  if (key === "l") return "l";
+  if (/^litr?e{1,2}s?$/.test(key) || /^liters?$/.test(key) || /^ltrs?$/.test(key)) return "litre";
+  if (/^hectares?$/.test(key) || key === "ha") return "hectare";
+  if (/^acres?$/.test(key)) return "acre";
+  if (/^plants?$/.test(key)) return "plant";
+  return String(unit || "").trim();
+}
+
 function parseTankInstructions(lines) {
   const hits = lines.filter((line) =>
     /tank|spray mix|dilut|per litre|per liter|per l\b|water/i.test(line),
@@ -123,7 +141,7 @@ function parseTankInstructions(lines) {
 
 function parsePhi(text) {
   const patterns = [
-    /(?:pre[-\s]?harvest(?:\s+interval)?|PHI|FHI|waiting\s+period\s+before\s+harvest|last\s+application\s+to\s+harvest(?:\s+interval)?)[^\n]{0,28}?[:\-]?\s*(\d{1,3})\s*(days?|din|\u0926\u093f\u0928)/i,
+    /(?:pre[-\s]?harvest(?:\s+interval)?|PHI|FHI|waiting\s+period\s+before\s+harvest|last\s+application\s+to\s+harvest(?:\s+interval)?)[^\n]{0,40}?[:\-]?\s*(\d{1,3})\s*(days?|din|\u0926\u093f\u0928)/i,
     /do not harvest(?:\s+within)?[^\n]{0,35}?(\d{1,3})\s*(days?)/i,
     /wait\s*(\d{1,3})\s*(days?)[^\n]{0,35}?harvest/i,
     /(?:\u0915\u091f\u093e\u0908|\u092b\u0938\u0932 \u0915\u093e\u091f\u0928\u0947)[^\n]{0,35}?(\d{1,3})\s*(\u0926\u093f\u0928)/i,
