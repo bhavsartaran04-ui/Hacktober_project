@@ -16,6 +16,89 @@ This app is a helper, not an official instruction. Follow the product label and 
 
 AI translation is optional. When configured, the server sends only confirmed label fields to the existing Groq-compatible chat-completions integration. AI output is rejected if it introduces numbers absent from the source. Do not treat an AI explanation as a replacement for the printed label.
 
+## Architecture
+
+```mermaid
+flowchart LR
+    subgraph Client["Frontend - React + Vite (Vercel)"]
+        UI["Mobile UI<br/>state and crop selection"]
+        CAM["Camera / file picker<br/>JPG, PNG, WebP, max 5 MB"]
+        REV["Review and correct form<br/>product, rate, PHI, re-entry, safety"]
+        RES["Result view<br/>tank dose and soil profile"]
+        TTS["Web Speech API<br/>read aloud"]
+    end
+
+    subgraph Server["Backend - Node.js API (Render)"]
+        API["Express routes<br/>/api/health, /api/label/*"]
+        IMG["Image validation<br/>bytes, dimensions, EXIF rotate, grayscale"]
+        OCR["Tesseract.js<br/>eng+hin"]
+        DOSE["Dose calculator<br/>volume-based rates only"]
+        GUARD["Number guard<br/>rejects AI numbers not in source"]
+    end
+
+    subgraph External["External services"]
+        SOIL[("SoilGrids<br/>soil texture")]
+        LLM[("Groq-compatible LLM<br/>optional translation")]
+    end
+
+    UI -->|"GET /label/soil"| API
+    API -->|"lookup / nearby pixel search"| SOIL
+    CAM -->|"POST /label/extract"| API
+    API --> IMG --> OCR
+    OCR -->|"OCR text and confidence"| REV
+    REV -->|"POST /label/result<br/>confirmed = true"| API
+    API --> DOSE
+    DOSE --> GUARD
+    GUARD <-->|"confirmed fields only"| LLM
+    GUARD -->|"calculation and explanation"| RES
+    RES --> TTS
+```
+
+## Data flow
+
+```mermaid
+flowchart TD
+    A([Farmer opens app]) --> B["Select state and optional crop season/type"]
+    B --> C["GET /api/label/soil"]
+    C --> D{"Mapped SoilGrids pixel<br/>at reference point?"}
+    D -->|Yes| E["Use texture estimate"]
+    D -->|No| F["Search nearby mapped pixels<br/>and record sample distance"]
+    F --> E
+
+    B --> G["Take or choose label photo"]
+    G --> H["POST /api/label/extract"]
+    H --> I{"Valid JPG/PNG/WebP<br/>under 5 MB, sane dimensions?"}
+    I -->|No| X["Reject with error<br/>retake or upload another photo"]
+    I -->|Yes| J["Auto-rotate EXIF and normalize to grayscale"]
+    J --> K["Tesseract.js OCR - eng+hin"]
+    K --> L["Return original OCR text and confidence"]
+
+    L --> M["Farmer reviews and corrects fields<br/>uncertain or missing values stay blank"]
+    M --> N["Confirm review and choose tank capacity"]
+    N --> O["POST /api/label/result"]
+    O --> P{"confirmed === true?"}
+    P -->|No| X2["Reject request"]
+    P -->|Yes| Q{"Rate and denominator are<br/>valid water volumes?"}
+    Q -->|"No, e.g. per hectare or acre"| R["No dose calculated<br/>show label values only"]
+    Q -->|Yes| S["Calculate tank dose"]
+
+    S --> T{"LLM_API_KEY configured?"}
+    R --> T
+    T -->|No| U["Report that translation<br/>needs configuration"]
+    T -->|Yes| V["Send confirmed fields only<br/>to LLM for translation"]
+    V --> W{"Output adds numbers<br/>not in source?"}
+    W -->|Yes| U2["Reject AI output"]
+    W -->|No| Y["Accept explanation"]
+
+    E --> Z["Result report<br/>soil context, dose, safety fields"]
+    U --> Z
+    U2 --> Z
+    Y --> Z
+    Z --> AA(["Optional: read aloud<br/>with Web Speech API"])
+```
+
+Soil and crop selections add context to the report only; they never feed into the dose calculation.
+
 ## Requirements
 
 - Node.js 20.19+ (or 22.12+) and npm.
