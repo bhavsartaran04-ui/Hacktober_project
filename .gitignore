@@ -6,6 +6,9 @@
 # Dependencies
 node_modules/
 
+# Tesseract cache copies written at runtime
+backend/*.traineddata.gz
+
 # Build output
 dist/
 dist-ssr/

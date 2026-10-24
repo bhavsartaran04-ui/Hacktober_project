@@ -40,7 +40,7 @@ export function parseLabelText(rawText) {
 function parseProductName(text, lines) {
   const labelled =
     text.match(
-      /(?:product(?:\s*name)?|trade\s*name|brand)\s*[:\-]\s*([^\n]+)/i,
+      /(?:product(?:\s+\w+)?|trade\s*name|brand)\s*[:\-]\s*([^\n]+)/i,
     );
   if (labelled) {
     return found(labelled[0], labelled[1]);
@@ -102,7 +102,7 @@ function parseTankInstructions(lines) {
 
 function parsePhi(text) {
   const patterns = [
-    /(?:pre[-\s]?harvest\s+interval|PHI)\s*[:\-]?\s*(\d+)\s*(days?|din)/i,
+    /(?:pre[-\s]?harvest[^\n]{0,24}|PHI|FHI)\s*[:\-]?\s*(\d+)\s*(days?|din)/i,
     /(?:do not harvest|wait(?:ing)? period before harvest)[^\n]{0,40}?(\d+)\s*(days?)/i,
     /wait\s*(\d+)\s*(days?)[^\n]{0,40}?harvest/i,
     /harvest[^\n]{0,30}?(\d+)\s*(days?)/i,
@@ -119,7 +119,7 @@ function parsePhi(text) {
 
 function parseReEntry(text) {
   const patterns = [
-    /(?:re[-\s]?entry(?:\s+interval)?|restricted entry(?:\s+interval)?|REI)\s*[:\-]?\s*(\d+)\s*(hours?|hrs?|days?)/i,
+    /(?:re[-\s]?ent\w*(?:\s+\w+)?|restricted entry(?:\s+interval)?|REI)\s*[:\-]?\s*(\d+)\s*(hours?|hrs?|days?)/i,
     /do not (?:enter|re-?enter)[^\n]{0,40}?(\d+)\s*(hours?|hrs?|days?)/i,
   ];
 
@@ -156,8 +156,8 @@ function parseMixing(text) {
     );
     return found(match?.[0] || "mixing allowed on label", match?.[0] || "");
   }
-  if (/do not mix/i.test(text)) {
-    const match = text.match(/[^\n]*do not mix[^\n]*/i);
+  if (/do\s*not\s*mix/i.test(text)) {
+    const match = text.match(/[^\n]*do\s*not\s*mix[^\n]*/i);
     return found(match?.[0] || "do not mix", match?.[0] || "");
   }
   return {

@@ -1,6 +1,9 @@
 {
   "name": "pesticide-label-reader",
   "private": true,
+  "engines": {
+    "node": ">=20.19.0"
+  },
   "description": "Root scripts only. The real apps live in frontend/ and backend/.",
   "scripts": {
     "dev": "concurrently -n backend,frontend -c blue,green \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",

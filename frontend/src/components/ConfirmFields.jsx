@@ -100,6 +100,18 @@ export default function ConfirmFields({ t, fields, onChange, onContinue, onBack 
         />
       </Field>
 
+      <Field
+        label={t.mixing}
+        statusLabel={
+          fields.mixing?.status === "found" ? t.sourceLabel : t.notFound
+        }
+      >
+        <input
+          value={fields.mixing?.value || ""}
+          onChange={(e) => setField("mixing.value", e.target.value)}
+        />
+      </Field>
+
       <div className="row">
         <button type="button" className="secondary" onClick={onBack}>
           {t.back}

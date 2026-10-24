@@ -28,12 +28,12 @@ export default function ResultCard({
     : calculation?.message || "Could not verify";
 
   const phiText =
-    fields.phi?.value?.trim() || "Could not verify: PHI is missing from the label";
+    fields?.phi?.value?.trim() || "Could not verify: PHI is missing from the label";
   const reEntryText =
-    fields.reEntry?.value?.trim() ||
+    fields?.reEntry?.value?.trim() ||
     "Could not verify: re-entry interval is missing from the label";
   const precautionText =
-    fields.precautions?.value?.trim() ||
+    fields?.precautions?.value?.trim() ||
     "Could not verify: no precaution lines were found";
   const mixingText =
     mixing?.status === "found"
@@ -41,11 +41,11 @@ export default function ResultCard({
       : "Could not verify";
 
   const extractedSummary = [
-    fields.productName?.value,
-    fields.rate?.value,
-    fields.phi?.value,
-    fields.reEntry?.value,
-    fields.precautions?.value,
+    fields?.productName?.value,
+    fields?.rate?.value,
+    fields?.phi?.value,
+    fields?.reEntry?.value,
+    fields?.precautions?.value,
   ]
     .filter(Boolean)
     .join(". ");
@@ -54,7 +54,7 @@ export default function ResultCard({
     <section className="card">
       <h2>{t.resultTitle}</h2>
       <p className="hint">
-        Tank: {tankLitres} litres
+        {t.productName}: {fields?.productName?.value || "—"} &nbsp;|&nbsp; Tank: {tankLitres} litres
       </p>
 
       <Item title={t.quantity} body={quantityText} tag={t.sourceCalc} />
@@ -78,8 +78,12 @@ export default function ResultCard({
           <p>{llm.explanation}</p>
         ) : (
           <>
-            <p className="error">{llm?.error}</p>
-            <p>{extractedSummary || "No extracted summary is available."}</p>
+            <p className="hint">{llm?.error}</p>
+            {extractedSummary ? (
+              <p>{extractedSummary}</p>
+            ) : (
+              <p className="hint">No extracted summary is available.</p>
+            )}
           </>
         )}
       </div>

@@ -95,11 +95,11 @@ function encodePng(width, height, rgba) {
   return png;
 }
 
-function drawText(lines, { scale = 4, pad = 24 } = {}) {
+function drawText(lines, { scale = 8, pad = 40 } = {}) {
   const glyphW = 5;
   const glyphH = 7;
-  const colGap = 1;
-  const rowGap = 3;
+  const colGap = 2;
+  const rowGap = 6;
   const maxChars = Math.max(...lines.map((l) => l.length), 1);
   const width = pad * 2 + maxChars * (glyphW + colGap) * scale;
   const height = pad * 2 + lines.length * (glyphH + rowGap) * scale;

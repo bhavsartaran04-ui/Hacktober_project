@@ -4,6 +4,7 @@ import { readLabelImage } from "../services/ocr.js";
 import { parseLabelText } from "../services/parser.js";
 import { calculateDose } from "../services/calculator.js";
 import { explainLabel } from "../services/llm.js";
+import { demoTextForFilename } from "../services/demoLabels.js";
 
 const MAX_BYTES = 5 * 1024 * 1024;
 
@@ -11,8 +12,14 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: MAX_BYTES },
   fileFilter(_req, file, cb) {
-    const allowed = ["image/jpeg", "image/png", "image/jpg"];
-    if (!allowed.includes(file.mimetype)) {
+    const mime = String(file.mimetype || "").toLowerCase();
+    const name = String(file.originalname || "").toLowerCase();
+    const mimeOk =
+      mime === "image/jpeg" || mime === "image/png" || mime === "image/jpg";
+    const extOk =
+      name.endsWith(".jpg") || name.endsWith(".jpeg") || name.endsWith(".png");
+    const looseMime = !mime || mime === "application/octet-stream";
+    if (!mimeOk && !(looseMime && extOk)) {
       const err = new Error("Only JPG and PNG images are allowed (max 5 MB).");
       err.code = "INVALID_TYPE";
       cb(err);
@@ -49,7 +56,10 @@ router.post("/extract", (req, res) => {
     }
 
     try {
-      const ocr = await readLabelImage(req.file.buffer);
+      const demoText = demoTextForFilename(req.file.originalname);
+      const ocr = demoText
+        ? { text: demoText, confidence: 100, lowConfidence: false }
+        : await readLabelImage(req.file.buffer);
       if (!ocr.text) {
         return res.status(422).json({
           ok: false,
@@ -61,7 +71,7 @@ router.post("/extract", (req, res) => {
       }
 
       const fields = parseLabelText(ocr.text);
-      const isDemo = /demo label/i.test(ocr.text);
+      const isDemo = Boolean(demoText) || /demo label/i.test(ocr.text);
 
       return res.json({
         ok: true,

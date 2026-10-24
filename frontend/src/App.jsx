@@ -23,6 +23,13 @@ function setDeep(obj, path, value) {
         ? ""
         : value
       : value;
+
+  // When user edits a value field, mark the parent status as "found"
+  // so the tag updates from "not found" → "From label" in the UI.
+  if (last === "value" && value.trim() !== "") {
+    cursor.status = "found";
+  }
+
   if (path.startsWith("rate.")) {
     const amount = next.rate.amount;
     const unit = next.rate.unit;
@@ -32,6 +39,10 @@ function setDeep(obj, path, value) {
       amount && unit && perAmount && perUnit
         ? `${amount} ${unit} per ${perAmount} ${perUnit}`
         : "";
+    // Mark rate as found if all subfields are filled
+    if (amount && unit && perAmount && perUnit) {
+      next.rate.status = "found";
+    }
   }
   return next;
 }
@@ -78,6 +89,10 @@ export default function App() {
       kind === "missing" ? "/demo/demo-missing-rate.png" : "/demo/demo-full.png";
     try {
       const res = await fetch(path);
+      if (!res.ok) {
+        setError("Could not load the DEMO label image. Make sure the demo files are in frontend/public/demo/.");
+        return;
+      }
       const blob = await res.blob();
       const file = new File([blob], path.split("/").pop(), { type: "image/png" });
       await runExtract(file, true);
@@ -164,11 +179,23 @@ export default function App() {
     setOcr(null);
     setCalculation(null);
     setLlm(null);
+    setMixing(null);
     setTankLitres("");
     setTankError("");
     setSpeechError("");
     setIsDemo(false);
   }
+
+  // Summary of confirmed fields for the tank screen
+  const fieldsSummary =
+    fields && screen === "tank"
+      ? [
+          fields.productName?.value && `${t.productName}: ${fields.productName.value}`,
+          fields.rate?.value && `${t.rateAmount}: ${fields.rate.value}`,
+          fields.phi?.value && `${t.phi}: ${fields.phi.value}`,
+          fields.reEntry?.value && `${t.reEntry}: ${fields.reEntry.value}`,
+        ].filter(Boolean)
+      : [];
 
   return (
     <main className="page">
@@ -212,6 +239,13 @@ export default function App() {
       {screen === "tank" ? (
         <section className="card">
           <h2>{t.tankTitle}</h2>
+          {fieldsSummary.length > 0 ? (
+            <ul className="confirmed-summary">
+              {fieldsSummary.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+          ) : null}
           <p className="hint">{t.tankHint}</p>
           <label className="field">
             <span>{t.tankLabel}</span>

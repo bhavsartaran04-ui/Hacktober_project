@@ -29,6 +29,8 @@ export default function UploadForm({ t, busy, error, onFile, onDemo }) {
         onChange={handleChange}
         disabled={busy}
       />
+      {error ? <p className="error">{error}</p> : null}
+      {busy ? <p className="status">{t.loading}</p> : null}
       <div className="row">
         <button type="button" disabled={busy} onClick={() => onDemo("full")}>
           {t.demo}
@@ -42,8 +44,6 @@ export default function UploadForm({ t, busy, error, onFile, onDemo }) {
           {t.demoMissing}
         </button>
       </div>
-      {busy ? <p className="status">{t.loading}</p> : null}
-      {error ? <p className="error">{error}</p> : null}
     </section>
   );
 }

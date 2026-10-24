@@ -150,7 +150,7 @@ cd ../frontend && npm install
 **Easiest: one command from the project root**
 
 ```bash
-cd /Users/keshvi/PEST_PROJ/Hacktober_project
+cd Hacktober_project
 npm run dev
 ```
 
@@ -161,7 +161,7 @@ This starts the backend on port **3001** and the frontend on port **5173**.
 Terminal A — backend (`npm run dev` restarts when you save a file). Folder name is `backend` (lowercase):
 
 ```bash
-cd /Users/keshvi/PEST_PROJ/Hacktober_project/backend
+cd Hacktober_project/backend
 npm run dev
 ```
 
@@ -178,7 +178,7 @@ Expected: `{"ok":true}`
 Terminal B — frontend:
 
 ```bash
-cd /Users/keshvi/PEST_PROJ/Hacktober_project/frontend
+cd Hacktober_project/frontend
 npm run dev
 ```
 
@@ -187,7 +187,7 @@ Expected: Vite prints `http://localhost:5173`. Open that in a browser.
 To **build** the frontend (this is what Vercel runs), you must be in `frontend/` or use the root helper:
 
 ```bash
-cd /Users/keshvi/PEST_PROJ/Hacktober_project
+cd Hacktober_project
 npm run build
 ```
 
@@ -262,6 +262,8 @@ The first request after idle time can be slow (**cold start**). The first OCR ru
 3. Tap **Listen**. Then retry with **Use DEMO label (no rate)** — quantity must say **Could not verify**, with no invented number.
 
 Keep local setup working as a backup if Wi‑Fi or free hosting is asleep.
+
+The **Use DEMO label** buttons send the sample PNG by filename. The backend uses the known DEMO text for those files so the walkthrough is stable; a real camera photo still goes through OCR.
 
 ---
 

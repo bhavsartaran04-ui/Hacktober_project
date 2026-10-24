@@ -86,6 +86,14 @@ button {
   font: inherit;
 }
 
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  outline: 2px solid #2f6b3a;
+  outline-offset: 1px;
+  border-color: #2f6b3a;
+}
+
 .grid2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -108,10 +116,24 @@ button {
   font: inherit;
   font-weight: 600;
   cursor: pointer;
+  transition: background 0.15s;
+}
+
+button:hover:not(:disabled) {
+  background: #245c2e;
+}
+
+button:focus-visible {
+  outline: 2px solid #1c2419;
+  outline-offset: 2px;
 }
 
 button.secondary {
   background: #4a5846;
+}
+
+button.secondary:hover:not(:disabled) {
+  background: #3b4a39;
 }
 
 button:disabled {
@@ -155,4 +177,18 @@ button:disabled {
 input[type="file"] {
   width: 100%;
   margin: 0.4rem 0 0.6rem;
+}
+
+.confirmed-summary {
+  margin: 0 0 0.75rem;
+  padding: 0.5rem 0.75rem 0.5rem 1.5rem;
+  background: #f4f8f2;
+  border-radius: 0.4rem;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: #2c4a31;
+}
+
+.confirmed-summary li {
+  margin-bottom: 0.2rem;
 }
