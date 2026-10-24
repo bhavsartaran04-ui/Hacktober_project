@@ -100,6 +100,7 @@ describe("Pesticide label reader flow", () => {
 
     expect(screen.queryByRole("button", { name: /demo/i })).toBeNull();
     expect(screen.queryByRole("searchbox")).toBeNull();
+    expect(screen.getByRole("navigation", { name: "Label reading steps" }).querySelector('[aria-current="step"]')?.textContent).toContain("Read label");
 
     await user.selectOptions(screen.getByLabelText("Farm state"), "Maharashtra");
     await waitFor(() => expect(fetchSoil).toHaveBeenCalledWith("Maharashtra"));
@@ -107,6 +108,7 @@ describe("Pesticide label reader flow", () => {
     await uploadPhoto(user);
 
     expect(await screen.findByText("Check what we read")).toBeTruthy();
+    expect(screen.getByRole("navigation", { name: "Label reading steps" }).querySelector('[aria-current="step"]')?.textContent).toContain("Review");
     expect(screen.getByText(/Original text read from the photo/)).toBeTruthy();
     await user.clear(screen.getByLabelText(/Product amount/));
     await user.type(screen.getByLabelText(/Product amount/), "3");
@@ -116,6 +118,7 @@ describe("Pesticide label reader flow", () => {
     await user.click(screen.getByRole("button", { name: "Show Result" }));
 
     expect(await screen.findByText("Result")).toBeTruthy();
+    expect(screen.getByRole("navigation", { name: "Label reading steps" }).querySelector('[aria-current="step"]')?.textContent).toContain("Your result");
     expect(screen.getByText("20 ml")).toBeTruthy();
     expect(screen.getByText("Genuineness of this reading")).toBeTruthy();
     expect(screen.getByText("Amount to use")).toBeTruthy();

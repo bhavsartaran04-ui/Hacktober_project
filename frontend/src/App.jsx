@@ -36,6 +36,13 @@ export default function App() {
   const [imagePreview, setImagePreview] = useState("");
 
   const t = useMemo(() => copy[language] || copy.en, [language]);
+  const currentStep = { upload: 1, confirm: 2, tank: 3, result: 4 }[screen];
+  const steps = [
+    t.stepRead,
+    t.stepReview,
+    t.stepTank,
+    t.stepResult,
+  ];
 
   async function handleStateChange(nextState) {
     const requestId = ++soilRequestId.current;
@@ -209,11 +216,40 @@ export default function App() {
       <div className="glow-ring" />
       <main className="page">
         <header className="app-header">
-          <h1>{t.title}</h1>
-          <p>{t.subtitle}</p>
+          <div className="brand-lockup">
+            <span className="brand-mark" aria-hidden="true">
+              <svg viewBox="0 0 32 32" fill="none">
+                <path d="M16 27V15m0 7C8 22 5 18 5 11c7 0 11 4 11 11Zm0-5c0-7 4-11 11-11 0 7-4 11-11 11Z" />
+              </svg>
+            </span>
+            <div>
+              <p className="app-eyebrow">{t.brandEyebrow}</p>
+              <h1>{t.title}</h1>
+            </div>
+          </div>
+          <div className="header-controls">
+            <LanguageSelect language={language} onChange={handleLanguageChange} t={t} disabled={busy} />
+          </div>
+          <p className="app-subtitle">{t.subtitle}</p>
         </header>
 
-        <LanguageSelect language={language} onChange={handleLanguageChange} t={t} disabled={busy} />
+        <nav className="step-nav" aria-label={t.workflowLabel}>
+          <ol>
+            {steps.map((label, index) => {
+              const step = index + 1;
+              return (
+                <li
+                  key={label}
+                  className={`step-item${step === currentStep ? " active" : ""}${step < currentStep ? " complete" : ""}`}
+                  aria-current={step === currentStep ? "step" : undefined}
+                >
+                  <span className="step-number">{step < currentStep ? "✓" : step}</span>
+                  <span className="step-label">{label}</span>
+                </li>
+              );
+            })}
+          </ol>
+        </nav>
 
         {isDemo ? <p className="demo-flag">{t.demoBanner}</p> : null}
 
@@ -289,6 +325,7 @@ export default function App() {
             onRetry={resetAll}
           />
         ) : null}
+        <footer className="app-footer">{t.footerText}</footer>
       </main>
     </>
   );

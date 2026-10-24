@@ -26,23 +26,34 @@ export default function UploadForm({ t, busy, error, onFile, state, onStateChang
   }
 
   return (
-    <section className="card">
-      <label className="state-select-label" htmlFor="farm-state">{t.stateLabel}</label>
-      <select id="farm-state" className="state-select" value={state} onChange={(event) => onStateChange(event.target.value)} disabled={busy}>
-        <option value="">{t.statePlaceholder}</option>
-        {INDIAN_STATES.map((name) => <option key={name} value={name}>{name}</option>)}
-      </select>
-      <p className="hint state-hint">{t.stateHint}</p>
-      {soilLoading ? <p className="status">{t.soilLoading}</p> : null}
-      {soil?.ok ? <p className="soil-preview">{t.soilPreview}: {soil.texture}</p> : null}
-      {soil?.error ? <p className="hint">{t.soilUnavailable}</p> : null}
+    <section className="card upload-card">
+      <div className="section-heading">
+        <span className="section-kicker">{t.farmSetupKicker}</span>
+        <h2>{t.farmSetupTitle}</h2>
+        <p className="hint">{t.farmSetupHint}</p>
+      </div>
+      <div className="farm-context-grid">
+        <div className="context-field">
+          <label className="state-select-label" htmlFor="farm-state">{t.stateLabel}</label>
+          <select id="farm-state" className="state-select" value={state} onChange={(event) => onStateChange(event.target.value)} disabled={busy}>
+            <option value="">{t.statePlaceholder}</option>
+            {INDIAN_STATES.map((name) => <option key={name} value={name}>{name}</option>)}
+          </select>
+          <p className="hint state-hint">{t.stateHint}</p>
+          {soilLoading ? <p className="status">{t.soilLoading}</p> : null}
+          {soil?.ok ? <p className="soil-preview">{t.soilPreview}: {soil.texture}</p> : null}
+          {soil?.error ? <p className="hint">{t.soilUnavailable}</p> : null}
+        </div>
 
-      <label className="state-select-label crop-label" htmlFor="farm-crop">{t.cropLabel}</label>
-      <select id="farm-crop" className="state-select" value={crop} onChange={(event) => onCropChange(event.target.value)} disabled={busy}>
-        <option value="">{t.cropPlaceholder}</option>
-        {CROP_TYPES.map((type) => <option key={type} value={type}>{t[`cropType${type[0].toUpperCase()}${type.slice(1)}`]}</option>)}
-      </select>
-      <p className="hint state-hint">{t.cropHint}</p>
+        <div className="context-field">
+          <label className="state-select-label" htmlFor="farm-crop">{t.cropLabel}</label>
+          <select id="farm-crop" className="state-select" value={crop} onChange={(event) => onCropChange(event.target.value)} disabled={busy}>
+            <option value="">{t.cropPlaceholder}</option>
+            {CROP_TYPES.map((type) => <option key={type} value={type}>{t[`cropType${type[0].toUpperCase()}${type.slice(1)}`]}</option>)}
+          </select>
+          <p className="hint state-hint">{t.cropHint}</p>
+        </div>
+      </div>
       {/* Hidden real file input */}
       <input
         ref={cameraRef}
@@ -50,6 +61,7 @@ export default function UploadForm({ t, busy, error, onFile, state, onStateChang
         type="file"
         accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
         capture="environment"
+        aria-label={t.takePhoto}
         onChange={handleChange}
         disabled={busy || !state}
       />
@@ -58,6 +70,7 @@ export default function UploadForm({ t, busy, error, onFile, state, onStateChang
         className="hidden-input"
         type="file"
         accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+        aria-label={t.choosePhoto}
         onChange={handleChange}
         disabled={busy || !state}
       />
@@ -67,8 +80,17 @@ export default function UploadForm({ t, busy, error, onFile, state, onStateChang
         className="upload-area"
         aria-disabled={busy || !state}
       >
-        <span className="camera-icon">📷</span>
-        <p>{t.cameraHint}</p>
+        <span className="camera-icon" aria-hidden="true">
+          <svg viewBox="0 0 48 48" fill="none">
+            <path d="M8 16.5h7l3-4h12l3 4h7a2 2 0 0 1 2 2v18a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-18a2 2 0 0 1 2-2Z" />
+            <circle cx="24" cy="26" r="7" />
+            <path d="M36 22h.01" />
+          </svg>
+        </span>
+        <div className="upload-copy">
+          <strong>{t.uploadTitle}</strong>
+          <p>{t.cameraHint}</p>
+        </div>
         <div className="row upload-actions">
           <button type="button" className="btn btn-primary" disabled={busy || !state} onClick={() => cameraRef.current?.click()}>{t.takePhoto}</button>
           <button type="button" className="btn btn-secondary" disabled={busy || !state} onClick={() => galleryRef.current?.click()}>{t.choosePhoto}</button>
