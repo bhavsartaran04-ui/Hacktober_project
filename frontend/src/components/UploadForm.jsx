@@ -1,6 +1,16 @@
 import { useRef } from "react";
 
-export default function UploadForm({ t, busy, error, onFile, onDemo }) {
+export const INDIAN_STATES = [
+  "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
+  "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka",
+  "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram",
+  "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu",
+  "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal",
+];
+
+const CROP_TYPES = ["kharif", "rabi", "zaid", "perennial", "other"];
+
+export default function UploadForm({ t, busy, error, onFile, state, onStateChange, crop, onCropChange, soil, soilLoading }) {
   const inputRef = useRef(null);
 
   function handleChange(event) {
@@ -24,6 +34,22 @@ export default function UploadForm({ t, busy, error, onFile, onDemo }) {
 
   return (
     <section className="card">
+      <label className="state-select-label" htmlFor="farm-state">{t.stateLabel}</label>
+      <select id="farm-state" className="state-select" value={state} onChange={(event) => onStateChange(event.target.value)} disabled={busy}>
+        <option value="">{t.statePlaceholder}</option>
+        {INDIAN_STATES.map((name) => <option key={name} value={name}>{name}</option>)}
+      </select>
+      <p className="hint state-hint">{t.stateHint}</p>
+      {soilLoading ? <p className="status">{t.soilLoading}</p> : null}
+      {soil?.ok ? <p className="soil-preview">{t.soilPreview}: {soil.texture}</p> : null}
+      {soil?.error ? <p className="hint">{t.soilUnavailable}</p> : null}
+
+      <label className="state-select-label crop-label" htmlFor="farm-crop">{t.cropLabel}</label>
+      <select id="farm-crop" className="state-select" value={crop} onChange={(event) => onCropChange(event.target.value)} disabled={busy}>
+        <option value="">{t.cropPlaceholder}</option>
+        {CROP_TYPES.map((type) => <option key={type} value={type}>{t[`cropType${type[0].toUpperCase()}${type.slice(1)}`]}</option>)}
+      </select>
+      <p className="hint state-hint">{t.cropHint}</p>
       {/* Hidden real file input */}
       <input
         ref={inputRef}
@@ -38,13 +64,13 @@ export default function UploadForm({ t, busy, error, onFile, onDemo }) {
       {/* Big tap area */}
       <div
         className="upload-area"
-        onClick={() => !busy && inputRef.current?.click()}
+        onClick={() => !busy && state && inputRef.current?.click()}
         role="button"
         tabIndex={0}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
-            inputRef.current?.click();
+            if (state && !busy) inputRef.current?.click();
           }
         }}
       >
@@ -59,26 +85,7 @@ export default function UploadForm({ t, busy, error, onFile, onDemo }) {
           <div className="spinner" />
           <p className="status">{t.loading}</p>
         </div>
-      ) : (
-        <div className="row" style={{ marginTop: "0.75rem" }}>
-          <button
-            type="button"
-            className="btn btn-secondary"
-            disabled={busy}
-            onClick={() => onDemo("full")}
-          >
-            {t.demo}
-          </button>
-          <button
-            type="button"
-            className="btn btn-secondary"
-            disabled={busy}
-            onClick={() => onDemo("missing")}
-          >
-            {t.demoMissing}
-          </button>
-        </div>
-      )}
+      ) : null}
     </section>
   );
 }

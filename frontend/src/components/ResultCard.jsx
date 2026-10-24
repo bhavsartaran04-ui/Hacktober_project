@@ -17,6 +17,9 @@ export default function ResultCard({
   calculation,
   llm,
   mixing,
+  soil,
+  state,
+  crop,
   speechError,
   onListen,
   onStop,
@@ -32,6 +35,9 @@ export default function ResultCard({
   const precautionText = fields?.precautions?.value?.trim() || t.notVerified;
   const mixingText =
     mixing?.status === "found" ? mixing.value : t.notVerified;
+  const cropText = crop
+    ? t[`cropType${crop[0].toUpperCase()}${crop.slice(1)}`]
+    : t.cropNotSelected;
 
   const extractedSummary = [
     fields?.productName?.value,
@@ -67,6 +73,14 @@ export default function ResultCard({
       <Item title={t.reEntry} value={reEntryText} tag={t.sourceLabel} />
       <Item title={t.precautions} value={precautionText} tag={t.sourceLabel} />
       <Item title={t.mixing} value={mixingText} tag={t.sourceLabel} />
+
+      <div className="result-item">
+        <div className="result-head"><strong>{t.soilReport}</strong><em className="tag">{t.sourceSoil}</em></div>
+        <p className="result-value">{state}: {soil?.ok ? soil.texture : t.soilUnavailable}</p>
+        <p className="result-value">{t.cropLabel}: {cropText}</p>
+        {soil?.ok ? <p className="hint">{t.soilDetails}: {soil.clayPercent}% {t.clay}, {soil.sandPercent}% {t.sand}. {soil.estimate} <a href={soil.sourceUrl} target="_blank" rel="noreferrer">{soil.source}</a>.</p> : null}
+        <p className="hint">{t.soilDoseNote}</p>
+      </div>
 
       {llm?.ok ? (
         <Item

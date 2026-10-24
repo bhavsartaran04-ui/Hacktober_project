@@ -49,4 +49,8 @@ export function fetchResult(payload, { onSlow } = {}) {
   );
 }
 
+export function fetchSoil(state) {
+  return request(`/api/label/soil?state=${encodeURIComponent(state)}`);
+}
+
 export { API_URL };

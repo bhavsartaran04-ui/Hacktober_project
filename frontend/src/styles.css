@@ -384,6 +384,30 @@ body {
   font-size: 0.85rem;
 }
 
+.state-select-label {
+  display: block;
+  color: #c0d0e0;
+  font-weight: 700;
+  margin-bottom: 0.45rem;
+}
+
+.state-select {
+  width: 100%;
+  padding: 0.85rem 0.75rem;
+  font-size: 1rem;
+  font-family: inherit;
+  color: #e0e8f0;
+  background: #0e1628;
+  border: 1px solid #2a3a52;
+  border-radius: 0.75rem;
+}
+
+.state-select:focus { outline: none; border-color: #00c48c; }
+.state-hint { margin: 0.45rem 0 0.75rem; }
+.crop-label { margin-top: 1rem; }
+.soil-preview { color: #00e5a0; font-size: 0.9rem; margin: 0.5rem 0; }
+.result-item a { color: #00c8ff; }
+
 .conversion {
   color: #5a7a96;
   font-size: 0.82rem;

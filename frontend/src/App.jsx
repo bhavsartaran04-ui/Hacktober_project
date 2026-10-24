@@ -1,10 +1,10 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import LanguageSelect from "./components/LanguageSelect.jsx";
 import SafetyBanner from "./components/SafetyBanner.jsx";
 import UploadForm from "./components/UploadForm.jsx";
 import TankScreen from "./components/TankScreen.jsx";
 import ResultCard from "./components/ResultCard.jsx";
-import { extractLabel, fetchResult } from "./services/api.js";
+import { extractLabel, fetchResult, fetchSoil } from "./services/api.js";
 import { getSpeechSupport, speakText, stopSpeaking } from "./services/speech.js";
 import { copy } from "./utils/copy.js";
 
@@ -22,8 +22,28 @@ export default function App() {
   const [llm, setLlm] = useState(null);
   const [mixing, setMixing] = useState(null);
   const [speechError, setSpeechError] = useState("");
+  const [state, setState] = useState("");
+  const [soil, setSoil] = useState(null);
+  const [crop, setCrop] = useState("");
+  const [soilLoading, setSoilLoading] = useState(false);
+  const soilRequestId = useRef(0);
 
   const t = useMemo(() => copy[language] || copy.en, [language]);
+
+  async function handleStateChange(nextState) {
+    const requestId = ++soilRequestId.current;
+    setState(nextState);
+    setSoil(null);
+    if (!nextState) {
+      setSoilLoading(false);
+      return;
+    }
+    setSoilLoading(true);
+    const result = await fetchSoil(nextState);
+    if (requestId !== soilRequestId.current) return;
+    setSoil(result);
+    setSoilLoading(false);
+  }
 
   /* ── Step 1: Extract label (OCR + parse) ── */
   async function runExtract(file, demoFlag) {
@@ -46,23 +66,6 @@ export default function App() {
     setScreen("tank");
   }
 
-  async function handleDemo(kind) {
-    const path =
-      kind === "missing" ? "/demo/demo-missing-rate.png" : "/demo/demo-full.png";
-    try {
-      const res = await fetch(path);
-      if (!res.ok) {
-        setError("Could not load demo image.");
-        return;
-      }
-      const blob = await res.blob();
-      const file = new File([blob], path.split("/").pop(), { type: "image/png" });
-      await runExtract(file, true);
-    } catch {
-      setError("Could not load demo image.");
-    }
-  }
-
   /* ── Step 2: Calculate result ── */
   async function runResult(litres) {
     setTankLitres(litres);
@@ -72,6 +75,9 @@ export default function App() {
     const result = await fetchResult(
       {
         language,
+        state,
+        crop,
+        soil,
         confirmed: true,
         tankLitres: litres,
         fields,
@@ -87,6 +93,7 @@ export default function App() {
     setCalculation(result.calculation);
     setLlm(result.llm);
     setMixing(result.mixing);
+    if (result.soil) setSoil(result.soil);
     setScreen("result");
   }
 
@@ -157,7 +164,12 @@ export default function App() {
               if (message) setError(message);
               else runExtract(file, false);
             }}
-            onDemo={handleDemo}
+            state={state}
+            onStateChange={handleStateChange}
+            crop={crop}
+            onCropChange={setCrop}
+            soil={soil}
+            soilLoading={soilLoading}
           />
         ) : null}
 
@@ -179,6 +191,9 @@ export default function App() {
             calculation={calculation}
             llm={llm}
             mixing={mixing}
+            soil={soil}
+            state={state}
+            crop={crop}
             speechError={speechError}
             onListen={handleListen}
             onStop={stopSpeaking}

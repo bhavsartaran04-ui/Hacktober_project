@@ -5,6 +5,7 @@ import { parseLabelText } from "../services/parser.js";
 import { calculateDose } from "../services/calculator.js";
 import { explainLabel } from "../services/llm.js";
 import { demoTextForFilename } from "../services/demoLabels.js";
+import { lookupStateSoil } from "../services/soil.js";
 
 const MAX_BYTES = 5 * 1024 * 1024;
 
@@ -30,6 +31,11 @@ const upload = multer({
 });
 
 const router = Router();
+
+router.get("/soil", async (req, res) => {
+  const soil = await lookupStateSoil(String(req.query.state || ""));
+  return res.json(soil);
+});
 
 router.post("/extract", (req, res) => {
   upload.single("image")(req, res, async (err) => {
@@ -122,6 +128,9 @@ router.post("/result", async (req, res) => {
 
   return res.json({
     ok: true,
+    state: typeof body.state === "string" ? body.state : null,
+    crop: typeof body.crop === "string" ? body.crop : null,
+    soil: body.soil?.ok ? body.soil : null,
     calculation: calc,
     llm,
     mixing:
